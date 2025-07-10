@@ -1,0 +1,9 @@
+ANÁLISE DA ESTRUTURA DO SITE DA CAIXA
+==================================================
+
+Data: 2025-07-10 10:54:11
+URL: https://www.vivareal.com.br/imovel/apartamento-3-quartos-sao-marcos-bairros-joinville-com-garagem-2065m2-venda-RS282967-id-2815358830/?source=ranking%2Crp
+Status: 200
+Tamanho HTML: 543,646 bytes
+
+FORMULÁRIOS ENCONTRADOS:

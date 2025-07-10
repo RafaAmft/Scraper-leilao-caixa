@@ -1,0 +1,10 @@
+ANÁLISE DA ESTRUTURA DO SITE DA CAIXA
+==================================================
+
+Data: 2025-07-10 10:56:14
+URL: https://venda-imoveis.caixa.gov.br/sistema/busca-imovel.asp?sltTipoBusca=imoveis
+Título: Caixa - Imóveis à venda
+Tamanho HTML: 82294 caracteres
+
+FORMULÁRIOS ENCONTRADOS:
+------------------------------

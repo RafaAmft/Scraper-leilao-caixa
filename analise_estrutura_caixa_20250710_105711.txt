@@ -1,0 +1,15 @@
+ANÁLISE DA ESTRUTURA DO SITE DA CAIXA
+==================================================
+
+Data: 2025-07-10 10:57:11
+Tamanho HTML: 82294 caracteres
+
+FORMULÁRIOS ENCONTRADOS:
+------------------------------
+
+Formulário 1:
+  Action: 
+  Method: post
+  Inputs: 24
+  Selects: 8
+  Buttons: 2
