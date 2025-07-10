@@ -1,7 +1,8 @@
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait, Select
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support.select import Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -230,8 +231,93 @@ def extrair_dados_imovel(elemento):
         print(f"Erro ao extrair dados do imóvel: {e}")
         return None
 
+def extrair_imoveis_da_pagina(driver, filtros, numero_pagina=1):
+    """Extrai imóveis de uma página específica"""
+    print(f"\n📄 Extraindo imóveis da página {numero_pagina}...")
+    
+    seletores_imoveis = [
+        ".group-block-item",
+        "li[class*='group-block-item']",
+        ".dadosimovel-col2",
+        "ul[class*='form-set'] li"
+    ]
+    
+    imoveis = []
+    
+    for seletor in seletores_imoveis:
+        try:
+            elementos = driver.find_elements(By.CSS_SELECTOR, seletor)
+            print(f"Seletor '{seletor}': {len(elementos)} elementos encontrados")
+            
+            if len(elementos) > 0:
+                for i, elemento in enumerate(elementos, 1):
+                    dados = extrair_dados_imovel(elemento)
+                    if dados:
+                        dados['numero'] = i
+                        dados['pagina'] = numero_pagina
+                        dados['filtros_usados'] = str(filtros)
+                        imoveis.append(dados)
+                        print(f"  Imóvel {i} (página {numero_pagina}): {dados['nome_imovel']} - R$ {dados['valor']}")
+                
+                if imoveis:
+                    break
+                    
+        except Exception as e:
+            print(f"Erro com seletor '{seletor}': {e}")
+    
+    # Se não encontrou com os seletores específicos, tentar extrair do HTML
+    if not imoveis:
+        print("Tentando extrair dados diretamente do HTML...")
+        
+        page_source = driver.page_source
+        padrao_imoveis = r'([^-]+) - ([^|]+) \| R\$ ([^<]+)'
+        matches = re.findall(padrao_imoveis, page_source)
+        
+        for i, match in enumerate(matches, 1):
+            cidade = match[0].strip()
+            nome_imovel = match[1].strip()
+            valor = match[2].strip()
+            
+            imovel = {
+                'numero': i,
+                'pagina': numero_pagina,
+                'cidade': cidade,
+                'nome_imovel': nome_imovel,
+                'valor': valor,
+                'id_imovel': '',
+                'url_imagem': '',
+                'texto_completo': f"{cidade} - {nome_imovel} | R$ {valor}",
+                'filtros_usados': str(filtros)
+            }
+            imoveis.append(imovel)
+            print(f"  Imóvel {i} (página {numero_pagina}): {nome_imovel} - R$ {valor}")
+    
+    return imoveis
+
+def verificar_proxima_pagina(driver):
+    """Verifica se existe uma próxima página e retorna o botão"""
+    try:
+        # Procurar por botões de navegação
+        botoes_proximo = driver.find_elements(By.XPATH, "//a[contains(text(), 'Próxima') or contains(text(), 'Próximo') or contains(text(), '>')]")
+        botoes_numero = driver.find_elements(By.XPATH, "//a[contains(@href, 'pagina') or contains(@onclick, 'pagina')]")
+        
+        # Verificar se há botão "Próxima" ou "Próximo"
+        for botao in botoes_proximo:
+            if botao.is_displayed() and botao.is_enabled():
+                return botao
+        
+        # Verificar botões numéricos (último número + 1)
+        for botao in botoes_numero:
+            if botao.is_displayed() and botao.is_enabled():
+                return botao
+        
+        return None
+    except Exception as e:
+        print(f"Erro ao verificar próxima página: {e}")
+        return None
+
 def buscar_imoveis_com_filtros(filtros):
-    """Executa a busca de imóveis com os filtros especificados"""
+    """Executa a busca de imóveis com os filtros especificados, navegando por múltiplas páginas"""
     
     chrome_options = Options()
     chrome_options.add_argument("--window-size=1920,1080")
@@ -308,67 +394,42 @@ def buscar_imoveis_com_filtros(filtros):
         print("Aguardando carregamento dos resultados...")
         time.sleep(10)
         
-        # Procurar por elementos de imóveis
-        print("Procurando por imóveis na página...")
+        # Extrair imóveis de todas as páginas
+        todos_imoveis = []
+        pagina_atual = 1
+        max_paginas = 10  # Limite de segurança
         
-        seletores_imoveis = [
-            ".group-block-item",
-            "li[class*='group-block-item']",
-            ".dadosimovel-col2",
-            "ul[class*='form-set'] li"
-        ]
-        
-        imoveis = []
-        
-        for seletor in seletores_imoveis:
-            try:
-                elementos = driver.find_elements(By.CSS_SELECTOR, seletor)
-                print(f"Seletor '{seletor}': {len(elementos)} elementos encontrados")
-                
-                if len(elementos) > 0:
-                    for i, elemento in enumerate(elementos, 1):
-                        dados = extrair_dados_imovel(elemento)
-                        if dados:
-                            dados['numero'] = i
-                            dados['filtros_usados'] = str(filtros)
-                            imoveis.append(dados)
-                            print(f"  Imóvel {i}: {dados['nome_imovel']} - R$ {dados['valor']}")
-                    
-                    if imoveis:
-                        break
-                        
-            except Exception as e:
-                print(f"Erro com seletor '{seletor}': {e}")
-        
-        # Se não encontrou com os seletores específicos, tentar extrair do HTML
-        if not imoveis:
-            print("Tentando extrair dados diretamente do HTML...")
+        while pagina_atual <= max_paginas:
+            print(f"\n📄 Processando página {pagina_atual}...")
             
-            page_source = driver.page_source
-            padrao_imoveis = r'([^-]+) - ([^|]+) \| R\$ ([^<]+)'
-            matches = re.findall(padrao_imoveis, page_source)
+            # Extrair imóveis da página atual
+            imoveis_pagina = extrair_imoveis_da_pagina(driver, filtros, pagina_atual)
             
-            for i, match in enumerate(matches, 1):
-                cidade = match[0].strip()
-                nome_imovel = match[1].strip()
-                valor = match[2].strip()
-                
-                imovel = {
-                    'numero': i,
-                    'cidade': cidade,
-                    'nome_imovel': nome_imovel,
-                    'valor': valor,
-                    'id_imovel': '',
-                    'url_imagem': '',
-                    'texto_completo': f"{cidade} - {nome_imovel} | R$ {valor}",
-                    'filtros_usados': str(filtros)
-                }
-                imoveis.append(imovel)
-                print(f"  Imóvel {i}: {nome_imovel} - R$ {valor}")
+            if imoveis_pagina:
+                todos_imoveis.extend(imoveis_pagina)
+                print(f"✅ {len(imoveis_pagina)} imóveis encontrados na página {pagina_atual}")
+            else:
+                print(f"⚠️ Nenhum imóvel encontrado na página {pagina_atual}")
+            
+            # Verificar se há próxima página
+            botao_proximo = verificar_proxima_pagina(driver)
+            
+            if botao_proximo:
+                try:
+                    print(f"🔄 Navegando para página {pagina_atual + 1}...")
+                    driver.execute_script("arguments[0].click();", botao_proximo)
+                    time.sleep(5)  # Aguardar carregamento da nova página
+                    pagina_atual += 1
+                except Exception as e:
+                    print(f"❌ Erro ao navegar para próxima página: {e}")
+                    break
+            else:
+                print(f"🏁 Última página alcançada (página {pagina_atual})")
+                break
         
         # Salvar resultados
-        if imoveis:
-            df = pd.DataFrame(imoveis)
+        if todos_imoveis:
+            df = pd.DataFrame(todos_imoveis)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             
             filename = f"imoveis_{filtros['nome_cidade'].lower()}_{timestamp}.csv"
@@ -379,32 +440,47 @@ def buscar_imoveis_com_filtros(filtros):
             df.to_json(json_filename, orient='records', force_ascii=False, indent=2)
             print(f"✅ Dados salvos em JSON: {json_filename}")
             
-            print(f"\n🎉 Total de imóveis encontrados: {len(imoveis)}")
+            print(f"\n🎉 Total de imóveis encontrados: {len(todos_imoveis)} em {pagina_atual} página(s)")
             
-            # Mostrar resumo
-            print("\n📊 RESUMO DOS IMÓVEIS:")
+            # Mostrar resumo por página
+            print("\n📊 RESUMO POR PÁGINA:")
             print("-" * 50)
-            for imovel in imoveis:
-                print(f"  {imovel['numero']}. {imovel['nome_imovel']}")
-                print(f"     Cidade: {imovel['cidade']}")
-                print(f"     Valor: R$ {imovel['valor']}")
-                print(f"     ID: {imovel['id_imovel']}")
-                print()
+            for pagina in range(1, pagina_atual + 1):
+                imoveis_pagina = [im for im in todos_imoveis if im['pagina'] == pagina]
+                if imoveis_pagina:
+                    print(f"📄 Página {pagina}: {len(imoveis_pagina)} imóveis")
+                    for imovel in imoveis_pagina[:3]:  # Mostrar apenas os 3 primeiros
+                        print(f"    • {imovel['nome_imovel']} - R$ {imovel['valor']}")
+                    if len(imoveis_pagina) > 3:
+                        print(f"    ... e mais {len(imoveis_pagina) - 3} imóveis")
+                    print()
+            
+            # Mostrar estatísticas
+            print("\n📈 ESTATÍSTICAS:")
+            print("-" * 30)
+            valores = [float(im['valor'].replace('.', '').replace(',', '.')) for im in todos_imoveis if im['valor'].replace('.', '').replace(',', '.').replace('R$', '').strip().isdigit()]
+            if valores:
+                print(f"💰 Valor médio: R$ {sum(valores)/len(valores):,.2f}")
+                print(f"💰 Valor mínimo: R$ {min(valores):,.2f}")
+                print(f"💰 Valor máximo: R$ {max(valores):,.2f}")
+            
         else:
             print("\n❌ Nenhum imóvel encontrado com os filtros especificados")
             
             # Salvar HTML para análise
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             html_filename = f"pagina_sem_resultados_{filtros['nome_cidade'].lower()}_{timestamp}.html"
             with open(html_filename, 'w', encoding='utf-8') as f:
                 f.write(driver.page_source)
             print(f"📄 HTML salvo para análise: {html_filename}")
         
         # Salvar screenshot
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         screenshot_filename = f"screenshot_{filtros['nome_cidade'].lower()}_{timestamp}.png"
         driver.save_screenshot(screenshot_filename)
         print(f"📸 Screenshot salvo: {screenshot_filename}")
         
-        return imoveis
+        return todos_imoveis
         
     except Exception as e:
         print(f"❌ Erro durante a execução: {e}")

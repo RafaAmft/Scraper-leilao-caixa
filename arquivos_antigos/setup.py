@@ -7,7 +7,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
-    name="busca-leilao-caixa",
+    name="scraper-caixa-imoveis",
     version="1.0.0",
     author="Rafael A M Fontes",
     author_email="rafael.a.fontes@hotmail.com",
@@ -32,7 +32,7 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "busca-leilao-caixa=scraper_caixa.scraper:main",
+            "scraper-caixa=scraper_caixa.scraper:main",
         ],
     },
     include_package_data=True,
