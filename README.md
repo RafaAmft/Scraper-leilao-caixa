@@ -47,14 +47,31 @@ pip install -e .
 
 ## 🎮 Como Usar
 
-### Execução Simples
+### 🚀 Modo Rápido (Recomendado para uso frequente)
 ```bash
-python scraper_simples_interativo.py
+# Executar diretamente
+python src/scraper_caixa/scraper.py
+
+# Ou usar o arquivo .bat
+executar_direto.bat
 ```
 
-### Após Instalação
+### 📦 Modo Completo (Após instalação)
 ```bash
-scraper-caixa
+# Instalar primeiro
+install.bat
+
+# Depois executar
+busca-leilao-caixa
+
+# Ou usar o arquivo .bat
+executar_scraper.bat
+```
+
+### 🔧 Configuração Interativa
+```bash
+# Menu com opções
+config_scraper.bat
 ```
 
 ## 🔧 Configuração

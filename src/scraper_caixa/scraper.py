@@ -13,35 +13,35 @@ import re
 
 URL = "https://venda-imoveis.caixa.gov.br/sistema/busca-imovel.asp?sltTipoBusca=imoveis"
 
-# Dicionário com estados e suas cidades disponíveis
+# Dicionário expandido com todos os estados brasileiros e suas principais cidades
 ESTADOS_CIDADES = {
-    "SC": {
-        "8690": "JOINVILLE",
-        "8621": "FLORIANOPOLIS", 
-        "8545": "BLUMENAU",
-        "8558": "BRUSQUE",
-        "8598": "CRICIUMA",
-        "8564": "CAMBORIU",
-        "8687": "JARAGUA DO SUL"
-    },
-    "SP": {
-        "3550308": "SAO PAULO",
-        "3509502": "CAMPINAS",
-        "3548708": "SANTOS",
-        "3543402": "RIBEIRAO PRETO"
-    },
-    "RS": {
-        "4314902": "PORTO ALEGRE",
-        "4304606": "CAXIAS DO SUL",
-        "4316907": "SANTA MARIA",
-        "4320000": "PELOTAS"
-    },
-    "PR": {
-        "4106902": "CURITIBA",
-        "4113700": "LONDRINA",
-        "4104808": "CASCAVEL",
-        "4115200": "MARINGA"
-    }
+    "AC": {"1200401": "RIO BRANCO"},
+    "AL": {"2704302": "MACEIO", "2701506": "ARAPIRACA"},
+    "AM": {"1302603": "MANAUS", "1301902": "ITACOATIARA"},
+    "AP": {"1600303": "MACAPA", "1600550": "SANTANA"},
+    "BA": {"2927408": "SALVADOR", "2910800": "FEIRA DE SANTANA", "2921005": "ILHEUS", "2929206": "VITORIA DA CONQUISTA"},
+    "CE": {"2304400": "FORTALEZA", "2303709": "CAUCAIA", "2307650": "JUAZEIRO DO NORTE", "2312908": "SOBRAL"},
+    "DF": {"5300108": "BRASILIA"},
+    "ES": {"3205309": "VITORIA", "3205002": "SERRA", "3201506": "CARIACICA", "3201209": "CACHOEIRO DE ITAPEMIRIM"},
+    "GO": {"5208707": "GOIANIA", "5201405": "ANAPOLIS", "5218806": "RIO VERDE", "5201108": "AGUAS LINDAS DE GOIAS"},
+    "MA": {"2111300": "SAO LUIS", "2105302": "IMPERATRIZ", "2103901": "CAXIAS"},
+    "MG": {"3106200": "BELO HORIZONTE", "3170206": "UBERLANDIA", "3149309": "POUSO ALEGRE", "3136702": "JUIZ DE FORA"},
+    "MS": {"5002704": "CAMPO GRANDE", "5003207": "CORUMBA", "5004106": "DOURADOS"},
+    "MT": {"5103403": "CUIABA", "5102504": "CACERES", "5107602": "RONDONOPOLIS"},
+    "PA": {"1501402": "BELEM", "1505502": "MARABA", "1504208": "CASTANHAL"},
+    "PB": {"2507507": "JOAO PESSOA", "2504007": "CAMPINA GRANDE", "2516201": "PATOS"},
+    "PE": {"2611606": "RECIFE", "2609600": "JABOATAO DOS GUARARAPES", "2607901": "PETROPOLIS"},
+    "PI": {"2211001": "TERESINA", "2208006": "PARNAIBA", "2207702": "PICOS"},
+    "PR": {"4106902": "CURITIBA", "4113700": "LONDRINA", "4104808": "CASCAVEL", "4115200": "MARINGA", "4101804": "APUCARANA"},
+    "RJ": {"3304557": "RIO DE JANEIRO", "3303500": "NOVA IGUACU", "3301702": "DUQUE DE CAXIAS", "3303302": "NITEROI"},
+    "RN": {"2408102": "NATAL", "2408003": "MOSSORO", "2403251": "CAICO"},
+    "RO": {"1100205": "PORTO VELHO", "1100049": "ARIQUEMES", "1100023": "CACOAL"},
+    "RR": {"1400100": "BOA VISTA", "1400472": "RORAINOPOLIS"},
+    "RS": {"4314902": "PORTO ALEGRE", "4304606": "CAXIAS DO SUL", "4316907": "SANTA MARIA", "4320000": "PELOTAS", "4307005": "GRAVATAI"},
+    "SC": {"8690": "JOINVILLE", "8621": "FLORIANOPOLIS", "8545": "BLUMENAU", "8558": "BRUSQUE", "8598": "CRICIUMA", "8564": "CAMBORIU", "8687": "JARAGUA DO SUL"},
+    "SE": {"2800308": "ARACAJU", "2803500": "LAGARTO", "2804003": "NOSSA SENHORA DO SOCORRO"},
+    "SP": {"3550308": "SAO PAULO", "3509502": "CAMPINAS", "3548708": "SANTOS", "3543402": "RIBEIRAO PRETO", "3506607": "BARUERI", "3548500": "SANTO ANDRE"},
+    "TO": {"1721000": "PALMAS", "1713800": "GURUPI", "1709500": "MIRACEMA DO TOCANTINS"}
 }
 
 # Opções de filtros
@@ -297,23 +297,74 @@ def extrair_imoveis_da_pagina(driver, filtros, numero_pagina=1):
 def verificar_proxima_pagina(driver):
     """Verifica se existe uma próxima página e retorna o botão"""
     try:
-        # Procurar por botões de navegação
-        botoes_proximo = driver.find_elements(By.XPATH, "//a[contains(text(), 'Próxima') or contains(text(), 'Próximo') or contains(text(), '>')]")
-        botoes_numero = driver.find_elements(By.XPATH, "//a[contains(@href, 'pagina') or contains(@onclick, 'pagina')]")
+        # Verificar se há mensagem de "nenhum resultado"
+        mensagens_sem_resultado = driver.find_elements(By.XPATH, 
+            "//*[contains(text(), 'Nenhum resultado') or contains(text(), 'nenhum resultado') or contains(text(), 'Não foram encontrados')]")
         
-        # Verificar se há botão "Próxima" ou "Próximo"
-        for botao in botoes_proximo:
-            if botao.is_displayed() and botao.is_enabled():
-                return botao
+        if mensagens_sem_resultado:
+            print("🔍 Detectada mensagem de 'nenhum resultado'")
+            return None
         
-        # Verificar botões numéricos (último número + 1)
-        for botao in botoes_numero:
-            if botao.is_displayed() and botao.is_enabled():
-                return botao
+        # Verificar se há elementos de imóveis na página
+        elementos_imoveis = driver.find_elements(By.CSS_SELECTOR, "a[onclick*='detalhe_imovel']")
+        if not elementos_imoveis:
+            print("🔍 Nenhum elemento de imóvel encontrado na página")
+            return None
         
+        # Procurar por botões de navegação específicos
+        botoes_proximo = driver.find_elements(By.XPATH, 
+            "//a[contains(text(), 'Próxima') or contains(text(), 'Próximo') or contains(text(), '>') or contains(text(), 'Seguinte')]")
+        
+        # Verificar botões numéricos de paginação
+        botoes_numero = driver.find_elements(By.XPATH, 
+            "//a[contains(@href, 'pagina') or contains(@onclick, 'pagina') or contains(@onclick, 'proxima')]")
+        
+        # Verificar botões de "próxima página" por classe ou ID
+        botoes_proximo_classe = driver.find_elements(By.CSS_SELECTOR, 
+            ".proxima, .next, .btn-proximo, .btn-next, [class*='proxima'], [class*='next']")
+        
+        # Combinar todos os botões encontrados
+        todos_botoes = botoes_proximo + botoes_numero + botoes_proximo_classe
+        
+        # Verificar se há botão válido
+        for botao in todos_botoes:
+            try:
+                if (botao.is_displayed() and 
+                    botao.is_enabled() and 
+                    botao.get_attribute('href') != '#' and
+                    not 'disabled' in botao.get_attribute('class', '').lower()):
+                    
+                    # Verificar se o botão não é o atual
+                    texto_botao = botao.text.strip().lower()
+                    if texto_botao not in ['1', 'atual', 'current']:
+                        print(f"✅ Botão de próxima página encontrado: '{botao.text}'")
+                        return botao
+            except Exception as e:
+                continue
+        
+        # Verificar se há paginação numérica ativa
+        paginas_ativas = driver.find_elements(By.XPATH, 
+            "//a[contains(@class, 'pagina') or contains(@class, 'page')]")
+        
+        for pagina in paginas_ativas:
+            try:
+                if (pagina.is_displayed() and 
+                    pagina.is_enabled() and
+                    not 'active' in pagina.get_attribute('class', '').lower() and
+                    not 'current' in pagina.get_attribute('class', '').lower()):
+                    
+                    numero_pagina = pagina.text.strip()
+                    if numero_pagina.isdigit():
+                        print(f"✅ Botão de página numérica encontrado: página {numero_pagina}")
+                        return pagina
+            except Exception as e:
+                continue
+        
+        print("🔍 Nenhum botão de próxima página válido encontrado")
         return None
+        
     except Exception as e:
-        print(f"Erro ao verificar próxima página: {e}")
+        print(f"❌ Erro ao verificar próxima página: {e}")
         return None
 
 def buscar_imoveis_com_filtros(filtros):
@@ -397,10 +448,23 @@ def buscar_imoveis_com_filtros(filtros):
         # Extrair imóveis de todas as páginas
         todos_imoveis = []
         pagina_atual = 1
-        max_paginas = 10  # Limite de segurança
+        max_paginas = 20  # Aumentado o limite de segurança
+        pagina_anterior = None
+        tentativas_consecutivas = 0
         
         while pagina_atual <= max_paginas:
             print(f"\n📄 Processando página {pagina_atual}...")
+            
+            # Verificar se a página mudou
+            url_atual = driver.current_url
+            if url_atual == pagina_anterior:
+                tentativas_consecutivas += 1
+                if tentativas_consecutivas >= 2:
+                    print("⚠️ Página não mudou após tentativas. Parando navegação.")
+                    break
+            else:
+                tentativas_consecutivas = 0
+                pagina_anterior = url_atual
             
             # Extrair imóveis da página atual
             imoveis_pagina = extrair_imoveis_da_pagina(driver, filtros, pagina_atual)
@@ -410,6 +474,11 @@ def buscar_imoveis_com_filtros(filtros):
                 print(f"✅ {len(imoveis_pagina)} imóveis encontrados na página {pagina_atual}")
             else:
                 print(f"⚠️ Nenhum imóvel encontrado na página {pagina_atual}")
+                # Se não há imóveis e não há botão próximo, parar
+                botao_proximo = verificar_proxima_pagina(driver)
+                if not botao_proximo:
+                    print("🏁 Nenhum imóvel encontrado e não há próxima página")
+                    break
             
             # Verificar se há próxima página
             botao_proximo = verificar_proxima_pagina(driver)
@@ -417,9 +486,31 @@ def buscar_imoveis_com_filtros(filtros):
             if botao_proximo:
                 try:
                     print(f"🔄 Navegando para página {pagina_atual + 1}...")
+                    
+                    # Salvar URL atual para verificar se mudou
+                    url_antes = driver.current_url
+                    
+                    # Tentar clicar no botão
                     driver.execute_script("arguments[0].click();", botao_proximo)
                     time.sleep(5)  # Aguardar carregamento da nova página
-                    pagina_atual += 1
+                    
+                    # Verificar se a URL mudou
+                    url_depois = driver.current_url
+                    if url_depois != url_antes:
+                        pagina_atual += 1
+                        print(f"✅ Navegação bem-sucedida para página {pagina_atual}")
+                    else:
+                        print("⚠️ URL não mudou após clique. Tentando novamente...")
+                        time.sleep(3)
+                        driver.execute_script("arguments[0].click();", botao_proximo)
+                        time.sleep(5)
+                        
+                        if driver.current_url == url_antes:
+                            print("❌ Falha na navegação. Parando.")
+                            break
+                        else:
+                            pagina_atual += 1
+                            
                 except Exception as e:
                     print(f"❌ Erro ao navegar para próxima página: {e}")
                     break
@@ -490,47 +581,206 @@ def buscar_imoveis_com_filtros(filtros):
         print("Fechando navegador...")
         driver.quit()
 
+def buscar_estados_disponiveis():
+    """Busca automaticamente todos os estados disponíveis no site da Caixa"""
+    print("🔍 Buscando estados disponíveis no site da Caixa...")
+    
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  # Executar sem interface gráfica
+    chrome_options.add_argument("--window-size=1920,1080")
+    
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    
+    try:
+        # Acessar página inicial
+        driver.get(URL)
+        time.sleep(3)
+        
+        # Encontrar o select de estados
+        select_estado = Select(driver.find_element(By.ID, "cmb_estado"))
+        
+        # Extrair todas as opções de estado
+        estados_disponiveis = {}
+        for option in select_estado.options:
+            if option.get_attribute("value") and option.get_attribute("value") != "":
+                sigla = option.get_attribute("value")
+                nome = option.text.strip()
+                estados_disponiveis[sigla] = nome
+        
+        print(f"✅ Encontrados {len(estados_disponiveis)} estados disponíveis:")
+        for sigla, nome in estados_disponiveis.items():
+            print(f"  {sigla}: {nome}")
+        
+        return estados_disponiveis
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar estados: {e}")
+        return {}
+    finally:
+        driver.quit()
+
+def buscar_cidades_por_estado(estado_sigla):
+    """Busca as cidades disponíveis para um estado específico"""
+    print(f"🔍 Buscando cidades disponíveis para {estado_sigla}...")
+    
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--window-size=1920,1080")
+    
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    
+    try:
+        # Acessar página inicial
+        driver.get(URL)
+        time.sleep(3)
+        
+        # Selecionar estado
+        select_estado = Select(driver.find_element(By.ID, "cmb_estado"))
+        select_estado.select_by_value(estado_sigla)
+        time.sleep(2)
+        
+        # Encontrar o select de cidades
+        select_cidade = Select(driver.find_element(By.ID, "cmb_cidade"))
+        
+        # Extrair todas as opções de cidade
+        cidades_disponiveis = {}
+        for option in select_cidade.options:
+            if option.get_attribute("value") and option.get_attribute("value") != "":
+                codigo = option.get_attribute("value")
+                nome = option.text.strip()
+                cidades_disponiveis[codigo] = nome
+        
+        print(f"✅ Encontradas {len(cidades_disponiveis)} cidades para {estado_sigla}:")
+        for codigo, nome in cidades_disponiveis.items():
+            print(f"  {codigo}: {nome}")
+        
+        return cidades_disponiveis
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar cidades para {estado_sigla}: {e}")
+        return {}
+    finally:
+        driver.quit()
+
+def atualizar_estados_cidades():
+    """Atualiza o dicionário ESTADOS_CIDADES com dados reais do site"""
+    print("🔄 Atualizando lista de estados e cidades...")
+    
+    # Buscar estados disponíveis
+    estados_disponiveis = buscar_estados_disponiveis()
+    
+    if not estados_disponiveis:
+        print("❌ Não foi possível buscar estados. Usando lista padrão.")
+        return
+    
+    # Para cada estado, buscar suas cidades
+    novos_estados_cidades = {}
+    for sigla, nome in estados_disponiveis.items():
+        print(f"\n📍 Buscando cidades para {sigla} ({nome})...")
+        cidades = buscar_cidades_por_estado(sigla)
+        if cidades:
+            novos_estados_cidades[sigla] = cidades
+    
+    # Atualizar o dicionário global
+    global ESTADOS_CIDADES
+    ESTADOS_CIDADES = novos_estados_cidades
+    
+    print(f"\n✅ Atualização concluída! {len(novos_estados_cidades)} estados com suas cidades foram atualizados.")
+
 def main():
     """Função principal"""
-    mostrar_menu()
+    print("\n" + "="*60)
+    print("🏠 SCRAPER INTERATIVO - IMÓVEIS CAIXA")
+    print("="*60)
     
+    # Menu principal
     while True:
-        # Obter entradas do usuário
-        filtros = obter_entrada_usuario()
+        print("\n📋 OPÇÕES DISPONÍVEIS:")
+        print("1. 🔍 Buscar imóveis")
+        print("2. 🔄 Atualizar lista de estados/cidades")
+        print("3. 📊 Ver estados disponíveis")
+        print("4. 🚪 Sair")
         
-        # Mostrar resumo dos filtros
-        print("\n" + "="*60)
-        print("📋 RESUMO DOS FILTROS SELECIONADOS")
-        print("="*60)
-        print(f"Estado: {filtros['estado']}")
-        print(f"Cidade: {filtros['nome_cidade']}")
-        print(f"Tipo de Imóvel: {TIPOS_IMOVEL[filtros['tipo_imovel']]}")
-        if filtros['faixa_valor']:
-            print(f"Faixa de Valor: {FAIXAS_VALOR[filtros['faixa_valor']]}")
-        else:
-            print("Faixa de Valor: Indiferente")
-        if filtros['quartos']:
-            print(f"Quartos: {QUARTOS[filtros['quartos']]}")
-        else:
-            print("Quartos: Indiferente")
+        opcao = input("\nEscolha uma opção (1-4): ").strip()
         
-        # Confirmar busca
-        confirmacao = input("\nDeseja executar a busca com estes filtros? (s/n): ").lower().strip()
-        if confirmacao in ['s', 'sim', 'y', 'yes']:
+        if opcao == "1":
+            # Buscar imóveis
+            mostrar_menu()
+            
+            while True:
+                # Obter entradas do usuário
+                filtros = obter_entrada_usuario()
+                
+                # Mostrar resumo dos filtros
+                print("\n" + "="*60)
+                print("📋 RESUMO DOS FILTROS SELECIONADOS")
+                print("="*60)
+                print(f"Estado: {filtros['estado']}")
+                print(f"Cidade: {filtros['nome_cidade']}")
+                print(f"Tipo de Imóvel: {TIPOS_IMOVEL[filtros['tipo_imovel']]}")
+                if filtros['faixa_valor']:
+                    print(f"Faixa de Valor: {FAIXAS_VALOR[filtros['faixa_valor']]}")
+                else:
+                    print("Faixa de Valor: Indiferente")
+                if filtros['quartos']:
+                    print(f"Quartos: {QUARTOS[filtros['quartos']]}")
+                else:
+                    print("Quartos: Indiferente")
+                
+                # Confirmar busca
+                confirmacao = input("\nDeseja executar a busca com estes filtros? (s/n): ").lower().strip()
+                if confirmacao in ['s', 'sim', 'y', 'yes']:
+                    break
+                else:
+                    print("Reiniciando configuração...")
+            
+            # Executar busca
+            imoveis = buscar_imoveis_com_filtros(filtros)
+            
+            # Perguntar se quer fazer nova busca
+            if imoveis:
+                nova_busca = input("\nDeseja fazer uma nova busca com outros filtros? (s/n): ").lower().strip()
+                if nova_busca in ['s', 'sim', 'y', 'yes']:
+                    continue
+                else:
+                    break
+            else:
+                print("\nNenhum imóvel encontrado. Tente ajustar os filtros.")
+                break
+                
+        elif opcao == "2":
+            # Atualizar lista de estados/cidades
+            print("\n🔄 ATUALIZANDO LISTA DE ESTADOS E CIDADES...")
+            print("⚠️ Esta operação pode demorar alguns minutos...")
+            
+            confirmacao = input("Deseja continuar? (s/n): ").lower().strip()
+            if confirmacao in ['s', 'sim', 'y', 'yes']:
+                atualizar_estados_cidades()
+                print("\n✅ Lista atualizada com sucesso!")
+            else:
+                print("Operação cancelada.")
+                
+        elif opcao == "3":
+            # Ver estados disponíveis
+            print("\n📍 ESTADOS DISPONÍVEIS:")
+            print("="*60)
+            for i, (sigla, cidades) in enumerate(ESTADOS_CIDADES.items(), 1):
+                print(f"{i:2d}. {sigla} ({len(cidades)} cidades)")
+                for codigo, nome in list(cidades.items())[:3]:  # Mostrar apenas as 3 primeiras
+                    print(f"     {codigo}: {nome}")
+                if len(cidades) > 3:
+                    print(f"     ... e mais {len(cidades) - 3} cidades")
+                print()
+                
+        elif opcao == "4":
+            # Sair
+            print("\n👋 Obrigado por usar o Scraper de Imóveis da Caixa!")
             break
+            
         else:
-            print("Reiniciando configuração...")
-    
-    # Executar busca
-    imoveis = buscar_imoveis_com_filtros(filtros)
-    
-    # Perguntar se quer fazer nova busca
-    if imoveis:
-        nova_busca = input("\nDeseja fazer uma nova busca com outros filtros? (s/n): ").lower().strip()
-        if nova_busca in ['s', 'sim', 'y', 'yes']:
-            main()
-    else:
-        print("\nNenhum imóvel encontrado. Tente ajustar os filtros.")
+            print("❌ Opção inválida! Tente novamente.")
 
 if __name__ == "__main__":
     main() 

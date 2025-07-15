@@ -1,0 +1,10 @@
+INVESTIGAÇÃO DO SITE DE LEILÕES DA CAIXA
+==================================================
+
+Data: 2025-07-15 17:07:18
+URL principal: https://www.caixa.gov.br/site/Paginas/PageNotFoundError.aspx?requestUrl=http://www.caixa.gov.br/leiloes
+Título principal: Página solicitada não foi encontrada
+
+LINKS DE LEILÕES:
+
+LINKS DE IMÓVEIS:
