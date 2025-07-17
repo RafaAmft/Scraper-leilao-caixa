@@ -1,0 +1,123 @@
+name: 🏠 Scraper Imóveis Caixa - Execução Diária
+
+on:
+  # Execução automática todos os dias às 8h da manhã (horário de Brasília)
+  schedule:
+    - cron: '0 11 * * *'  # 11h UTC = 8h BRT (horário de verão: 9h BRT)
+  
+  # Execução manual via GitHub
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Modo teste (apenas uma cidade)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  scrape-imoveis:
+    name: 🔍 Buscar Imóveis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: 📦 Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install selenium webdriver-manager pandas beautifulsoup4 requests
+          
+      - name: 🖥️ Instalar Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          google-chrome --version
+          
+      - name: 🔧 Configurar variáveis de ambiente
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+          
+      - name: 🚀 Executar Scraper
+        run: |
+          if [ "${{ github.event.inputs.test_mode }}" = "true" ]; then
+            echo "🧪 Executando em modo teste..."
+            python testes/teste_script_automatico.py
+          else
+            echo "🚀 Executando scraper completo..."
+            python scraper_automatico.py
+          fi
+        env:
+          # Configurações do email (serão definidas como secrets)
+          EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
+          EMAIL_DESTINATARIOS: ${{ secrets.EMAIL_DESTINATARIOS }}
+          SENHA_APP: ${{ secrets.SENHA_APP }}
+          
+      - name: 📸 Capturar screenshot em caso de erro
+        if: failure()
+        run: |
+          echo "❌ Erro detectado! Capturando informações de debug..."
+          ls -la *.png *.txt *.json *.csv 2>/dev/null || echo "Nenhum arquivo de output encontrado"
+          
+      - name: 📤 Upload de relatórios como artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: relatorios-${{ github.run_number }}
+          path: |
+            relatorio_*.txt
+            imoveis_*.json
+            imoveis_*.csv
+            screenshot_*.png
+          retention-days: 7
+          
+      - name: 📊 Resumo da execução
+        run: |
+          echo "📈 RESUMO DA EXECUÇÃO:"
+          echo "======================"
+          echo "Data/Hora: $(date)"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Modo: ${{ github.event.inputs.test_mode == 'true' && 'Teste' || 'Completo' }}"
+          
+          # Contar arquivos gerados
+          echo ""
+          echo "📁 ARQUIVOS GERADOS:"
+          echo "==================="
+          echo "Relatórios: $(ls relatorio_*.txt 2>/dev/null | wc -l || echo 0)"
+          echo "Dados JSON: $(ls imoveis_*.json 2>/dev/null | wc -l || echo 0)"
+          echo "Dados CSV: $(ls imoveis_*.csv 2>/dev/null | wc -l || echo 0)"
+          echo "Screenshots: $(ls screenshot_*.png 2>/dev/null | wc -l || echo 0)"
+          
+  notify-success:
+    name: ✅ Notificar Sucesso
+    runs-on: ubuntu-latest
+    needs: scrape-imoveis
+    if: success()
+    
+    steps:
+      - name: 📧 Enviar notificação de sucesso
+        run: |
+          echo "✅ Scraper executado com sucesso!"
+          echo "📅 Data: $(date)"
+          echo "🔗 Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+  notify-failure:
+    name: ❌ Notificar Falha
+    runs-on: ubuntu-latest
+    needs: scrape-imoveis
+    if: failure()
+    
+    steps:
+      - name: 📧 Enviar notificação de falha
+        run: |
+          echo "❌ Scraper falhou!"
+          echo "📅 Data: $(date)"
+          echo "🔗 Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "💡 Verifique os logs para mais detalhes" 

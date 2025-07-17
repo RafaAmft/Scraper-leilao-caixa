@@ -1,0 +1,123 @@
+name: 🧪 Teste do Scraper
+
+on:
+  # Executar em pull requests
+  pull_request:
+    branches: [ main ]
+  
+  # Execução manual
+  workflow_dispatch:
+    inputs:
+      cidade_teste:
+        description: 'Cidade para teste (ex: JOINVILLE)'
+        required: false
+        default: 'JOINVILLE'
+        type: string
+
+jobs:
+  test-scraper:
+    name: 🧪 Testar Scraper
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: 📦 Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install selenium webdriver-manager pandas beautifulsoup4 requests
+          
+      - name: 🖥️ Instalar Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          google-chrome --version
+          
+      - name: 🔧 Configurar variáveis de ambiente
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+          
+      - name: 🧪 Executar teste do scraper
+        run: |
+          echo "🧪 Executando teste do scraper..."
+          python testes/teste_script_automatico.py
+          
+      - name: 📊 Verificar arquivos gerados
+        run: |
+          echo "📁 VERIFICAÇÃO DOS ARQUIVOS GERADOS:"
+          echo "==================================="
+          
+          # Verificar relatórios
+          if ls teste_relatorio_*.txt 1> /dev/null 2>&1; then
+            echo "✅ Relatórios de teste encontrados:"
+            ls -la teste_relatorio_*.txt
+          else
+            echo "❌ Nenhum relatório de teste encontrado"
+            exit 1
+          fi
+          
+          # Verificar dados
+          if ls imoveis_*.json 1> /dev/null 2>&1; then
+            echo "✅ Dados JSON encontrados:"
+            ls -la imoveis_*.json
+          else
+            echo "❌ Nenhum dado JSON encontrado"
+            exit 1
+          fi
+          
+          # Verificar screenshots
+          if ls screenshot_*.png 1> /dev/null 2>&1; then
+            echo "✅ Screenshots encontrados:"
+            ls -la screenshot_*.png
+          else
+            echo "❌ Nenhum screenshot encontrado"
+            exit 1
+          fi
+          
+      - name: 📤 Upload de resultados como artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: resultados-teste-${{ github.run_number }}
+          path: |
+            teste_relatorio_*.txt
+            imoveis_*.json
+            imoveis_*.csv
+            screenshot_*.png
+          retention-days: 3
+          
+      - name: 📈 Resumo do teste
+        run: |
+          echo "📊 RESUMO DO TESTE:"
+          echo "==================="
+          echo "Data/Hora: $(date)"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          
+          # Contar arquivos
+          echo ""
+          echo "📁 ARQUIVOS GERADOS:"
+          echo "==================="
+          echo "Relatórios de teste: $(ls teste_relatorio_*.txt 2>/dev/null | wc -l || echo 0)"
+          echo "Dados JSON: $(ls imoveis_*.json 2>/dev/null | wc -l || echo 0)"
+          echo "Dados CSV: $(ls imoveis_*.csv 2>/dev/null | wc -l || echo 0)"
+          echo "Screenshots: $(ls screenshot_*.png 2>/dev/null | wc -l || echo 0)"
+          
+          # Verificar se o teste foi bem-sucedido
+          if [ $(ls teste_relatorio_*.txt 2>/dev/null | wc -l) -gt 0 ] && [ $(ls imoveis_*.json 2>/dev/null | wc -l) -gt 0 ]; then
+            echo ""
+            echo "✅ TESTE CONCLUÍDO COM SUCESSO!"
+            echo "O scraper está funcionando corretamente."
+          else
+            echo ""
+            echo "❌ TESTE FALHOU!"
+            echo "Verifique os logs para identificar o problema."
+            exit 1
+          fi 
