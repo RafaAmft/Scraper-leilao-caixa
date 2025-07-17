@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 Script automático para buscar imóveis em todas as cidades configuradas
-Com suporte a múltiplos destinatários de email
 """
 
 import time
@@ -29,10 +28,10 @@ def carregar_configuracao():
         return None
 
 def carregar_config_gmail():
-    """Carrega a configuração do Gmail com múltiplos destinatários"""
+    """Carrega a configuração do Gmail"""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     config_dir = os.path.join(script_dir, 'config') if not script_dir.endswith('config') else script_dir
-    config_file = os.path.join(config_dir, "gmail_config_multiplos.json")
+    config_file = os.path.join(config_dir, "gmail_config.json")
     if os.path.exists(config_file):
         try:
             with open(config_file, 'r', encoding='utf-8') as f:
@@ -41,93 +40,86 @@ def carregar_config_gmail():
             pass
     return {
         'email_remetente': None,
-        'email_destinatarios': []
+        'email_destinatario': None
     }
 
+def gerar_email_temporario():
+    """Gera um email temporário"""
+    import random
+    import string
+    
+    nome = ''.join(random.choices(string.ascii_lowercase, k=8))
+    email = f"{nome}@10minutemail.com"
+    return email
+
 def enviar_email_relatorio(relatorio, relatorio_detalhado):
-    """Envia relatório por email usando Gmail com múltiplos destinatários"""
+    """Envia relatório por email usando Gmail com senha de app"""
     SENHA_APP = "hfvk igne yago hwou"  # Senha de app fornecida
     config_gmail = carregar_config_gmail()
     EMAIL_REMETENTE = config_gmail.get('email_remetente')
-    EMAIL_DESTINATARIOS = config_gmail.get('email_destinatarios', [])
-    
-    if not EMAIL_REMETENTE:
-        print("❌ Email remetente não configurado!")
-        print("💡 Execute 'python config/configurar_gmail_multiplos.py' para configurar")
+    EMAIL_DESTINATARIO = config_gmail.get('email_destinatario')
+    if not EMAIL_REMETENTE or not EMAIL_DESTINATARIO:
+        print("❌ Email remetente ou destinatário não configurado!")
+        print("💡 Execute 'python config/configurar_gmail.py' para configurar")
         return
     
-    if not EMAIL_DESTINATARIOS:
-        print("❌ Nenhum destinatário configurado!")
-        print("💡 Execute 'python config/configurar_gmail_multiplos.py' para configurar")
-        return
-    
-    print(f"📧 Enviando para {len(EMAIL_DESTINATARIOS)} destinatário(s)...")
-    
-    # Enviar para cada destinatário
-    emails_enviados = 0
-    for i, email_destinatario in enumerate(EMAIL_DESTINATARIOS, 1):
-        print(f"\n📧 [{i}/{len(EMAIL_DESTINATARIOS)}] Enviando para: {email_destinatario}")
-        
-        # Tentar envio com retry
-        max_tentativas = 3
-        for tentativa in range(max_tentativas):
-            try:
-                print(f"   Tentativa {tentativa + 1}/{max_tentativas}...")
-                
-                # Criar mensagem
-                msg = MIMEMultipart()
-                msg['From'] = EMAIL_REMETENTE
-                msg['To'] = email_destinatario
-                msg['Subject'] = f"Relatório de Imóveis - {datetime.now().strftime('%d/%m/%Y')}"
-                corpo = f"""
+    # Tentar envio com retry
+    max_tentativas = 3
+    for tentativa in range(max_tentativas):
+        try:
+            print(f"📧 Tentativa {tentativa + 1}/{max_tentativas} de envio de email...")
+            print(f"   De: {EMAIL_REMETENTE}")
+            print(f"   Para: {EMAIL_DESTINATARIO}")
+            
+            # Criar mensagem
+            msg = MIMEMultipart()
+            msg['From'] = EMAIL_REMETENTE
+            msg['To'] = EMAIL_DESTINATARIO
+            msg['Subject'] = f"Relatório de Imóveis - {datetime.now().strftime('%d/%m/%Y')}"
+            corpo = f"""
 {relatorio}
 
 ---
 Relatório detalhado anexado.
 Gerado automaticamente pelo Scraper Imóveis Caixa
-                """
-                msg.attach(MIMEText(corpo, 'plain', 'utf-8'))
-                relatorio_anexo = MIMEText(relatorio_detalhado, 'plain', 'utf-8')
-                relatorio_anexo.add_header('Content-Disposition', 'attachment', filename=f'relatorio_detalhado_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt')
-                msg.attach(relatorio_anexo)
-                
-                # Conectar com timeout maior
-                server = smtplib.SMTP('smtp.gmail.com', 587, timeout=60)
-                server.starttls()
-                server.login(EMAIL_REMETENTE, SENHA_APP)
-                server.send_message(msg)
-                server.quit()
-                print(f"   ✅ Email enviado com sucesso para {email_destinatario}")
-                emails_enviados += 1
-                break  # Sucesso, sair do loop de tentativas
-                
-            except smtplib.SMTPAuthenticationError as e:
-                print(f"   ❌ Erro de autenticação: {e}")
-                break  # Não tentar novamente para erro de auth
-            except smtplib.SMTPRecipientsRefused as e:
-                print(f"   ❌ Destinatário recusado: {e}")
-                break  # Não tentar novamente para erro de destinatário
-            except (socket.timeout, socket.gaierror, ConnectionError) as e:
-                print(f"   ❌ Erro de conectividade (tentativa {tentativa + 1}): {e}")
-                if tentativa < max_tentativas - 1:
-                    print("   ⏳ Aguardando 10 segundos antes da próxima tentativa...")
-                    time.sleep(10)
-                else:
-                    print(f"   ❌ Falha ao enviar para {email_destinatario}")
-            except Exception as e:
-                print(f"   ❌ Erro inesperado (tentativa {tentativa + 1}): {e}")
-                if tentativa < max_tentativas - 1:
-                    print("   ⏳ Aguardando 5 segundos antes da próxima tentativa...")
-                    time.sleep(5)
-                else:
-                    print(f"   ❌ Falha ao enviar para {email_destinatario}")
+            """
+            msg.attach(MIMEText(corpo, 'plain', 'utf-8'))
+            relatorio_anexo = MIMEText(relatorio_detalhado, 'plain', 'utf-8')
+            relatorio_anexo.add_header('Content-Disposition', 'attachment', filename=f'relatorio_detalhado_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt')
+            msg.attach(relatorio_anexo)
+            
+            # Conectar com timeout maior
+            server = smtplib.SMTP('smtp.gmail.com', 587, timeout=60)
+            server.starttls()
+            server.login(EMAIL_REMETENTE, SENHA_APP)
+            server.send_message(msg)
+            server.quit()
+            print("✅ Email enviado com sucesso!")
+            return  # Sucesso, sair da função
+            
+        except smtplib.SMTPAuthenticationError as e:
+            print(f"❌ Erro de autenticação: {e}")
+            break  # Não tentar novamente para erro de auth
+        except smtplib.SMTPRecipientsRefused as e:
+            print(f"❌ Destinatário recusado: {e}")
+            break  # Não tentar novamente para erro de destinatário
+        except (socket.timeout, socket.gaierror, ConnectionError) as e:
+            print(f"❌ Erro de conectividade (tentativa {tentativa + 1}): {e}")
+            if tentativa < max_tentativas - 1:
+                print("⏳ Aguardando 10 segundos antes da próxima tentativa...")
+                time.sleep(10)
+            else:
+                print("❌ Todas as tentativas falharam")
+        except Exception as e:
+            print(f"❌ Erro inesperado (tentativa {tentativa + 1}): {e}")
+            if tentativa < max_tentativas - 1:
+                print("⏳ Aguardando 5 segundos antes da próxima tentativa...")
+                time.sleep(5)
+            else:
+                print("❌ Todas as tentativas falharam")
     
-    if emails_enviados > 0:
-        print(f"\n✅ {emails_enviados}/{len(EMAIL_DESTINATARIOS)} emails enviados com sucesso!")
-    else:
-        print("\n❌ Nenhum email foi enviado com sucesso")
-        print("💡 O relatório foi salvo em arquivo local")
-        print("💡 Verifique se o email remetente, destinatários e senha de app estão corretos")
+    print("💡 O relatório foi salvo em arquivo local")
+    print("💡 Verifique se o email remetente, destinatário e senha de app estão corretos")
 
 def buscar_todas_cidades():
     """Busca imóveis em todas as cidades configuradas"""

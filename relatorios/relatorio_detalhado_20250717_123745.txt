@@ -1,0 +1,25 @@
+
+📊 RELATÓRIO DETALHADO DE IMÓVEIS - CAIXA
+Data: 17/07/2025 12:37
+Cidades processadas: 8
+Total de imóveis encontrados: 10
+
+
+🏙️ JOINVILLE/SC: 10 imóveis encontrados
+  1. Cond Res Parque Jolie - R$ 215.000,00
+  2. RESIDENCIAL TEIXEIRA XVIII - R$ 220.269,00
+  3. BOEHMERWALD - R$ 385.500,00
+  4. RES BUSARELLO - R$ 203.940,58
+  5. EASY CLUB PORTO BELO - R$ 378.000,00
+  ... e mais 5 imóveis
+🏙️ BLUMENAU/SC: Nenhum imóvel encontrado
+🏙️ BARRA VELHA/SC: Nenhum imóvel encontrado
+❌ BALNEARIO BARRA DO SUL/SC: Erro - Could not reach host. Are you offline?
+❌ ITAJAI/SC: Erro - Could not reach host. Are you offline?
+❌ GOVERNADOR CELSO RAMOS/SC: Erro - Could not reach host. Are you offline?
+❌ CAMPO GRANDE/MS: Erro - Could not reach host. Are you offline?
+❌ BADY BASSITT/SP: Erro - Could not reach host. Are you offline?
+
+---
+Relatório gerado automaticamente
+    

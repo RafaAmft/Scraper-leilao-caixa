@@ -10,6 +10,7 @@ Scraper interativo para extrair dados de imóveis do site da Caixa (https://vend
 - 📊 **Exportação**: Dados salvos em CSV e JSON
 - 📸 **Screenshots**: Capturas automáticas das páginas
 - 🎯 **Dados Completos**: Endereço, valor, ID do imóvel, imagens
+- 📧 **Envio de Email para Múltiplos Destinatários**
 
 ## 🚀 Instalação
 
@@ -47,26 +48,13 @@ pip install -e .
 
 ## 🎮 Como Usar
 
-### 🚀 Modo Rápido (Recomendado para uso frequente)
+### 🚀 Modo Automático Completo
 ```bash
-# Executar diretamente
-python src/scraper_caixa/scraper.py
-
-# Ou usar o arquivo .bat
-executar_direto.bat
+python scraper_automatico.py
 ```
 
-### 📦 Modo Completo (Após instalação)
-```bash
-# Instalar primeiro
-install.bat
-
-# Depois executar
-busca-leilao-caixa
-
-# Ou usar o arquivo .bat
-executar_scraper.bat
-```
+- Busca imóveis em todas as cidades configuradas
+- Gera relatórios e envia para todos os destinatários cadastrados
 
 ### 🔧 Configuração Interativa
 ```bash
@@ -74,7 +62,7 @@ executar_scraper.bat
 config_scraper.bat
 ```
 
-## 🔧 Configuração
+## ⚙️ Configuração
 
 O scraper permite configurar:
 
@@ -110,17 +98,60 @@ O scraper permite configurar:
 - **3**: 3 quartos
 - **4**: 4+ quartos
 
+## 📁 Estrutura de Pastas
+
+```
+📁 Projeto/
+├── dados_imoveis/2025-07-17/
+├── relatorios/2025-07-17/
+├── screenshots/2025-07-17/
+├── testes/
+├── config/
+├── scripts/
+├── arquivos_antigos/
+├── src/
+├── README.md
+├── ESTRUTURA_ORGANIZADA.md
+└── ...
+```
+
+- **dados_imoveis/**: Dados CSV/JSON organizados por data
+- **relatorios/**: Relatórios resumidos e detalhados por data
+- **screenshots/**: Imagens das páginas por data
+- **config/**: Configurações do sistema e email
+- **testes/**: Scripts de teste e validação
+- **scripts/**: Scripts utilitários e .bat
+- **arquivos_antigos/**: Notebooks, HTMLs e arquivos antigos
+
+## 📧 **CONFIGURAÇÃO DE EMAIL MÚLTIPLO**
+
+### **Configurar Destinatários**
+```bash
+python config/configurar_gmail_multiplos.py
+```
+- Adicione/remova destinatários facilmente
+- O arquivo de configuração é `config/gmail_config_multiplos.json`
+
+### **Testar Envio de Email**
+```bash
+python testes/teste_email_robusto.py
+```
+
+### **Envio Automático**
+- O `scraper_automatico.py` envia o relatório para todos os emails cadastrados
+
 ## 📁 Arquivos Gerados
 
 ### Dados
-- `imoveis_[estado]_[timestamp].csv` - Dados em formato CSV
-- `imoveis_[estado]_[timestamp].json` - Dados em formato JSON
+- `imoveis_[cidade]_[data].csv` - Dados em formato CSV
+- `imoveis_[cidade]_[data].json` - Dados em formato JSON
 
 ### Screenshots
-- `screenshot_[estado]_[timestamp].png` - Captura da página
+- `screenshot_[cidade]_[data].png` - Captura da página
 
-### Debug
-- `pagina_sem_resultados_[estado]_[timestamp].html` - HTML para análise
+### Relatórios
+- `relatorio_resumido_[data].txt` - Resumo do dia
+- `relatorio_detalhado_[data].txt` - Detalhamento completo
 
 ## 📊 Exemplo de Saída
 
@@ -145,39 +176,16 @@ O scraper permite configurar:
      ID: 1555533963936
 ```
 
-## 📧 **CONFIGURAÇÃO DE EMAIL**
-
-### **Configurar Gmail (Recomendado)**
-```bash
-python config/configurar_gmail.py
-```
-
-### **Testar Envio de Email**
-```bash
-python config/teste_envio_email.py
-```
-
-### **Configuração Manual (Alternativa)**
-```bash
-python config/configurar_email.py
-```
-
-### **Testar Configuração**
-```bash
-python config/teste_scraper_automatico.py
-```
-
 ## 🛠️ Scripts Disponíveis
 
 ### Principais
-- `scraper_automatico.py` - Scraper automático com envio de email
-- `scraper_simples_interativo.py` - Scraper interativo principal
-- `scraper_caixa_final.py` - Scraper automático para Joinville
-- `debug_site_caixa.py` - Script de debug para análise do site
+- `scraper_automatico.py` - Scraper automático com envio de email múltiplo
+- `testes/teste_email_robusto.py` - Teste robusto de envio de email
+- `testes/teste_script_automatico.py` - Teste do fluxo automático para uma cidade
 
 ### Utilitários
-- `extrator_site_completo.py` - Extrator genérico de sites
-- `analise_estrutura_caixa_final.py` - Análise da estrutura do site
+- `config/configurar_gmail_multiplos.py` - Configuração de múltiplos destinatários
+- `configuracao_cidades.json` - Configuração das cidades monitoradas
 
 ## ⚠️ Requisitos
 
