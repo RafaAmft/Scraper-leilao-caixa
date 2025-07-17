@@ -156,3 +156,7 @@ temp/
 tmp/
 output/
 logs/ 
+
+# Arquivos de configuração sensíveis
+config/gmail_config_multiplos.json
+.env 

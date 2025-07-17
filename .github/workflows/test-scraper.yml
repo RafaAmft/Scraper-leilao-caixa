@@ -83,7 +83,7 @@ jobs:
           fi
           
       - name: 📤 Upload de resultados como artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: resultados-teste-${{ github.run_number }}
           path: |

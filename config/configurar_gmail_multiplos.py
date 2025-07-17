@@ -12,7 +12,7 @@ def configurar_gmail_multiplos():
     print("📧 CONFIGURAÇÃO DO GMAIL - MÚLTIPLOS DESTINATÁRIOS")
     print("=" * 50)
     print("Este script configura o email Gmail para envio de relatórios.")
-    print("A senha de app já está configurada: hfvk igne yago hwou")
+    print("🔐 Senha de app: (configure a variável de ambiente GMAIL_APP_PASSWORD)")
     print()
     
     # Verificar se já existe configuração
@@ -52,7 +52,7 @@ def configurar_gmail_multiplos():
                     json.dump(config, f, ensure_ascii=False, indent=2)
                 
                 print(f"✅ Email Gmail configurado: {email}")
-                print("🔐 Senha de app: hfvk igne yago hwou")
+                print("🔐 Senha de app: (configure a variável de ambiente GMAIL_APP_PASSWORD)")
             else:
                 print("❌ Email inválido! Deve ser um email Gmail (@gmail.com)")
         
@@ -105,7 +105,7 @@ def configurar_gmail_multiplos():
         elif opcao == "4":
             print("\n📧 CONFIGURAÇÃO ATUAL:")
             print(f"   Email remetente: {config.get('email_remetente', 'Nenhum')}")
-            print(f"   Senha de app: hfvk igne yago hwou")
+            print(f"   Senha de app: (configure a variável de ambiente GMAIL_APP_PASSWORD)")
             
             if config.get('email_destinatarios'):
                 print(f"   Destinatários ({len(config['email_destinatarios'])}):")
@@ -156,7 +156,7 @@ def testar_configuracao_gmail_multiplos():
         print(f"📧 Destinatários: {len(email_destinatarios)}")
         for i, email in enumerate(email_destinatarios, 1):
             print(f"   {i}. {email}")
-        print(f"🔐 Senha de app: hfvk igne yago hwou")
+        print(f"🔐 Senha de app: (configure a variável de ambiente GMAIL_APP_PASSWORD)")
         
         # Testar conexão SMTP
         print("\n🔍 Testando conexão SMTP...")
@@ -165,7 +165,13 @@ def testar_configuracao_gmail_multiplos():
         try:
             server = smtplib.SMTP('smtp.gmail.com', 587)
             server.starttls()
-            server.login(email_remetente, "hfvk igne yago hwou")
+            # Substituir a senha fixa por variável de ambiente
+            senha_app = os.environ.get("GMAIL_APP_PASSWORD")
+            if not senha_app:
+                print("❌ A variável de ambiente GMAIL_APP_PASSWORD não está definida.")
+                print("💡 Configure a variável de ambiente GMAIL_APP_PASSWORD no seu ambiente.")
+                return
+            server.login(email_remetente, senha_app)
             server.quit()
             print("✅ Conexão SMTP testada com sucesso!")
             print("✅ Configuração está funcionando!")
