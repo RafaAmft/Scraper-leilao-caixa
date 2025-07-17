@@ -1,4 +1,4 @@
-name: 🏠 Scraper Imóveis Caixa - Execução Diária
+name: 🏠 Scraper Imóveis Caixa - Execução Diária dia 1
 
 on:
   # Execução automática todos os dias às 8h da manhã (horário de Brasília)
