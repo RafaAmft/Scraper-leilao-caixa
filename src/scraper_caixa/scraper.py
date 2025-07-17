@@ -194,6 +194,9 @@ def extrair_dados_imovel(elemento):
             id_match = re.search(r'detalhe_imovel\((\d+)\)', onclick)
             id_imovel = id_match.group(1) if id_match else ''
             
+            # Gerar link direto para o imóvel
+            link_direto = f"https://venda-imoveis.caixa.gov.br/sistema/detalhe-imovel.asp?hdnOrigem=index&txtImovel={id_imovel}" if id_imovel else ''
+            
             # Extrair URL da imagem
             try:
                 img_element = elemento.find_element(By.CSS_SELECTOR, "img.fotoimovel")
@@ -201,12 +204,55 @@ def extrair_dados_imovel(elemento):
             except:
                 url_imagem = ''
             
+            # Tentar extrair informações adicionais do elemento pai
+            endereco = ''
+            quartos = ''
+            
+            try:
+                # Procurar por informações de endereço e quartos no texto do elemento
+                texto_elemento = elemento.text
+                
+                # Padrões para extrair endereço (pode variar dependendo do site)
+                endereco_patterns = [
+                    r'Endereço[:\s]+([^\n]+)',
+                    r'Localização[:\s]+([^\n]+)',
+                    r'Bairro[:\s]+([^\n]+)',
+                    r'Rua[:\s]+([^\n]+)',
+                    r'Av[:\s]+([^\n]+)'
+                ]
+                
+                for pattern in endereco_patterns:
+                    endereco_match = re.search(pattern, texto_elemento, re.IGNORECASE)
+                    if endereco_match:
+                        endereco = endereco_match.group(1).strip()
+                        break
+                
+                # Padrões para extrair quartos
+                quartos_patterns = [
+                    r'(\d+)\s*quarto',
+                    r'(\d+)\s*suíte',
+                    r'(\d+)\s*dormitório',
+                    r'(\d+)\s*bedroom'
+                ]
+                
+                for pattern in quartos_patterns:
+                    quartos_match = re.search(pattern, texto_elemento, re.IGNORECASE)
+                    if quartos_match:
+                        quartos = quartos_match.group(1)
+                        break
+                        
+            except Exception as e:
+                print(f"Erro ao extrair informações adicionais: {e}")
+            
             return {
                 'id_imovel': id_imovel,
                 'cidade': cidade,
                 'nome_imovel': nome_imovel,
                 'valor': valor,
+                'endereco': endereco,
+                'quartos': quartos,
                 'url_imagem': url_imagem,
+                'link_direto': link_direto,
                 'texto_completo': texto_completo
             }
         else:

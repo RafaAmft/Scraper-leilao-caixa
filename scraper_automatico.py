@@ -165,12 +165,26 @@ def buscar_todas_cidades():
                 if imoveis:
                     relatorio_cidade = f"\n🏙️ {nome}/{estado}: {len(imoveis)} imóveis encontrados"
                     
-                    # Mostrar os 5 primeiros imóveis
-                    for i, imovel in enumerate(imoveis[:5], 1):
-                        relatorio_cidade += f"\n  {i}. {imovel['nome_imovel']} - R$ {imovel['valor']}"
-                    
-                    if len(imoveis) > 5:
-                        relatorio_cidade += f"\n  ... e mais {len(imoveis) - 5} imóveis"
+                    # Mostrar TODOS os imóveis com informações completas
+                    for i, imovel in enumerate(imoveis, 1):
+                        relatorio_cidade += f"\n\n  {i}. {imovel['nome_imovel']}"
+                        
+                        # Adicionar quartos se disponível
+                        if imovel.get('quartos'):
+                            relatorio_cidade += f"\n     🛏️ {imovel['quartos']} quarto(s)"
+                        
+                        # Adicionar valor
+                        relatorio_cidade += f"\n     💰 R$ {imovel['valor']}"
+                        
+                        # Adicionar endereço se disponível
+                        if imovel.get('endereco'):
+                            relatorio_cidade += f"\n     📍 {imovel['endereco']}"
+                        
+                        # Adicionar link direto
+                        if imovel.get('link_direto'):
+                            relatorio_cidade += f"\n     🔗 {imovel['link_direto']}"
+                        elif imovel.get('id_imovel'):
+                            relatorio_cidade += f"\n     🔗 https://venda-imoveis.caixa.gov.br/sistema/detalhe-imovel.asp?hdnOrigem=index&txtImovel={imovel['id_imovel']}"
                     
                     relatorio_completo.append(relatorio_cidade)
                     total_imoveis += len(imoveis)

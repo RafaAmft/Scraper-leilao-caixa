@@ -1,0 +1,23 @@
+
+🧪 TESTE - RELATÓRIO DETALHADO DE IMÓVEIS - CAIXA
+Data: 17/07/2025 15:29
+Cidade testada: JOINVILLE/SC
+Total de imóveis encontrados: 10
+
+🏙️ JOINVILLE/SC: 10 imóveis encontrados
+
+IMÓVEIS ENCONTRADOS:
+  1. Cond Res Parque Jolie - R$ 215.000,00
+  2. RESIDENCIAL TEIXEIRA XVIII - R$ 220.269,00
+  3. BOEHMERWALD - R$ 385.500,00
+  4. RES BUSARELLO - R$ 203.940,58
+  5. EASY CLUB PORTO BELO - R$ 378.000,00
+  6. COND RES ASSISI - R$ 265.000,00
+  7. EDIFÍCIO RESIDENCIAL MADRID - R$ 285.000,00
+  8. SPAZIO JOVITA - R$ 155.259,35
+  9. SPAZIO JOVITA - R$ 228.270,00
+  10. RES SPAZIO JOVITA - R$ 132.970,97
+
+---
+TESTE - Relatório gerado automaticamente
+            
