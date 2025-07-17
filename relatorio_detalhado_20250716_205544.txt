@@ -1,0 +1,47 @@
+
+📊 RELATÓRIO DETALHADO DE IMÓVEIS - CAIXA
+Data: 16/07/2025 20:55
+Cidades processadas: 12
+Total de imóveis encontrados: 30
+
+
+🏙️ JOINVILLE/SC: 10 imóveis encontrados
+  1. Cond Res Parque Jolie - R$ 215.000,00
+  2. RESIDENCIAL TEIXEIRA XVIII - R$ 220.269,00
+  3. BOEHMERWALD - R$ 385.500,00
+  4. RES BUSARELLO - R$ 203.940,58
+  5. EASY CLUB PORTO BELO - R$ 378.000,00
+  ... e mais 5 imóveis
+🏙️ BLUMENAU/SC: 7 imóveis encontrados
+  1. AGUA VERDE - R$ 270.000,00
+  2. CONDOMÍNIO RESIDENCIAL BADEN - R$ 245.000,00
+  3. COND SPAZIO BAUHAUS - R$ 131.157,73
+  4. FORTALEZA - R$ 700.000,00
+  5. RESIDENCIAL NOVA GERMÂNIA - R$ 151.182,33
+  ... e mais 2 imóveis
+🏙️ BARRA VELHA/SC: Nenhum imóvel encontrado
+🏙️ BALNEARIO PICARRAS/SC: 7 imóveis encontrados
+  1. RES VILLA VÊNETO - R$ 205.000,00
+  2. RESIDENCIAL TOSCANA II - R$ 129.948,90
+  3. RESIDENCIAL DA SILVA - R$ 146.953,08
+  4. RESIDENCIAL TOSCANA II - R$ 94.518,84
+  5. ED RES FLOR DE LIZ - R$ 165.000,00
+  ... e mais 2 imóveis
+🏙️ ITAPEMA/SC: Nenhum imóvel encontrado
+🏙️ SAO FRANCISCO DO SUL/SC: 6 imóveis encontrados
+  1. RESIDENCIAL JARDIM DI GENOVA - R$ 171.016,84
+  2. RESIDENCIAL MONTE OLIMPO - R$ 527.194,17
+  3. RES ESTER MENEL - R$ 194.000,00
+  4. SOFT SAO LUIS - R$ 215.000,00
+  5. RESIDENCIAL ELZA GRUTZACHER - R$ 221.000,00
+  ... e mais 1 imóveis
+🏙️ GOVERNADOR CELSO RAMOS/SC: Nenhum imóvel encontrado
+🏙️ BADY BASSITT/SP: Nenhum imóvel encontrado
+🏙️ SAO JOSE DO RIO PRETO/SP: Nenhum imóvel encontrado
+🏙️ ANDRADINA/SP: Nenhum imóvel encontrado
+🏙️ CAMPO GRANDE/MS: Nenhum imóvel encontrado
+🏙️ TRES LAGOAS/MS: Nenhum imóvel encontrado
+
+---
+Relatório gerado automaticamente
+    

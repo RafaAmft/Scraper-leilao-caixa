@@ -145,9 +145,32 @@ O scraper permite configurar:
      ID: 1555533963936
 ```
 
+## 📧 **CONFIGURAÇÃO DE EMAIL**
+
+### **Configurar Gmail (Recomendado)**
+```bash
+python config/configurar_gmail.py
+```
+
+### **Testar Envio de Email**
+```bash
+python config/teste_envio_email.py
+```
+
+### **Configuração Manual (Alternativa)**
+```bash
+python config/configurar_email.py
+```
+
+### **Testar Configuração**
+```bash
+python config/teste_scraper_automatico.py
+```
+
 ## 🛠️ Scripts Disponíveis
 
 ### Principais
+- `scraper_automatico.py` - Scraper automático com envio de email
 - `scraper_simples_interativo.py` - Scraper interativo principal
 - `scraper_caixa_final.py` - Scraper automático para Joinville
 - `debug_site_caixa.py` - Script de debug para análise do site

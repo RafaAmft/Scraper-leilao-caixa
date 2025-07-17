@@ -1,0 +1,20 @@
+
+📊 RELATÓRIO DETALHADO DE IMÓVEIS - CAIXA
+Data: 16/07/2025 19:59
+Total de imóveis encontrados: 23
+
+
+🏙️ SC (10 imóveis):
+  • JOINVILLE: 5 imóveis
+  • BLUMENAU: 3 imóveis
+  • FLORIANOPOLIS: 2 imóveis
+
+🏙️ SP (12 imóveis):
+  • SAO PAULO: 8 imóveis
+  • CAMPINAS: 4 imóveis
+
+🏙️ MS (1 imóveis):
+  • CAMPO GRANDE: 1 imóveis
+
+---
+Relatório gerado automaticamente

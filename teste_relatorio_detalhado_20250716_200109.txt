@@ -1,0 +1,27 @@
+
+📊 RELATÓRIO DETALHADO DE IMÓVEIS - CAIXA
+Data: 16/07/2025 20:01
+Cidades processadas: 5
+Total de imóveis encontrados: 11
+
+
+🏙️ JOINVILLE/SC: 3 imóveis encontrados
+  1. RESIDENCIAL JARDIM EUROPA - R$ 150.000,00
+  2. APARTAMENTO CENTRO - R$ 200.000,00
+  3. CASA VILA NOVA - R$ 180.000,00
+🏙️ BLUMENAU/SC: 2 imóveis encontrados
+  1. CONDOMINIO GARCIA - R$ 220.000,00
+  2. APARTAMENTO VILA ITOUPAVA - R$ 190.000,00
+🏙️ SAO PAULO/SP: 3 imóveis encontrados
+  1. APARTAMENTO VILA MADALENA - R$ 450.000,00
+  2. CASA JARDINS - R$ 800.000,00
+  3. COBERTURA ITAIM - R$ 1.200.000,00
+🏙️ CAMPINAS/SP: 2 imóveis encontrados
+  1. APARTAMENTO CENTRO - R$ 280.000,00
+  2. CASA TAQUARAL - R$ 350.000,00
+🏙️ CAMPO GRANDE/MS: 1 imóveis encontrados
+  1. APARTAMENTO CENTRO - R$ 180.000,00
+
+---
+Relatório gerado automaticamente
+    

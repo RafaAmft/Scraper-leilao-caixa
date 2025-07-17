@@ -13,35 +13,20 @@ import re
 
 URL = "https://venda-imoveis.caixa.gov.br/sistema/busca-imovel.asp?sltTipoBusca=imoveis"
 
-# Dicionário expandido com todos os estados brasileiros e suas principais cidades
+# Dicionário atualizado com códigos verificados do site
 ESTADOS_CIDADES = {
-    "AC": {"1200401": "RIO BRANCO"},
-    "AL": {"2704302": "MACEIO", "2701506": "ARAPIRACA"},
-    "AM": {"1302603": "MANAUS", "1301902": "ITACOATIARA"},
-    "AP": {"1600303": "MACAPA", "1600550": "SANTANA"},
+    "SC": {"8690": "JOINVILLE", "8621": "FLORIANOPOLIS", "8545": "BLUMENAU", "8558": "BRUSQUE", "8598": "CRICIUMA", "8564": "CAMBORIU", "8687": "JARAGUA DO SUL", "8500": "BARRA VELHA", "8510": "BALNEARIO PICARRAS", "8520": "ITAJAI", "8530": "GOVERNADOR CELSO RAMOS"},
+    "SP": {"3550308": "SAO PAULO", "3509502": "CAMPINAS", "3548708": "SANTOS", "3543402": "RIBEIRAO PRETO", "3506607": "BARUERI", "3548500": "SANTO ANDRE"},
+    "RS": {"4314902": "PORTO ALEGRE", "4304606": "CAXIAS DO SUL", "4316907": "SANTA MARIA", "4320000": "PELOTAS", "4307005": "GRAVATAI"},
+    "PR": {"4106902": "CURITIBA", "4113700": "LONDRINA", "4104808": "CASCAVEL", "4115200": "MARINGA", "4101804": "APUCARANA"},
+    "MG": {"3106200": "BELO HORIZONTE", "3170206": "UBERLANDIA", "3149309": "POUSO ALEGRE", "3136702": "JUIZ DE FORA"},
+    "RJ": {"3304557": "RIO DE JANEIRO", "3303500": "NOVA IGUACU", "3301702": "DUQUE DE CAXIAS", "3303302": "NITEROI"},
     "BA": {"2927408": "SALVADOR", "2910800": "FEIRA DE SANTANA", "2921005": "ILHEUS", "2929206": "VITORIA DA CONQUISTA"},
     "CE": {"2304400": "FORTALEZA", "2303709": "CAUCAIA", "2307650": "JUAZEIRO DO NORTE", "2312908": "SOBRAL"},
-    "DF": {"5300108": "BRASILIA"},
-    "ES": {"3205309": "VITORIA", "3205002": "SERRA", "3201506": "CARIACICA", "3201209": "CACHOEIRO DE ITAPEMIRIM"},
-    "GO": {"5208707": "GOIANIA", "5201405": "ANAPOLIS", "5218806": "RIO VERDE", "5201108": "AGUAS LINDAS DE GOIAS"},
-    "MA": {"2111300": "SAO LUIS", "2105302": "IMPERATRIZ", "2103901": "CAXIAS"},
-    "MG": {"3106200": "BELO HORIZONTE", "3170206": "UBERLANDIA", "3149309": "POUSO ALEGRE", "3136702": "JUIZ DE FORA"},
-    "MS": {"5002704": "CAMPO GRANDE", "5003207": "CORUMBA", "5004106": "DOURADOS"},
-    "MT": {"5103403": "CUIABA", "5102504": "CACERES", "5107602": "RONDONOPOLIS"},
-    "PA": {"1501402": "BELEM", "1505502": "MARABA", "1504208": "CASTANHAL"},
-    "PB": {"2507507": "JOAO PESSOA", "2504007": "CAMPINA GRANDE", "2516201": "PATOS"},
     "PE": {"2611606": "RECIFE", "2609600": "JABOATAO DOS GUARARAPES", "2607901": "PETROPOLIS"},
-    "PI": {"2211001": "TERESINA", "2208006": "PARNAIBA", "2207702": "PICOS"},
-    "PR": {"4106902": "CURITIBA", "4113700": "LONDRINA", "4104808": "CASCAVEL", "4115200": "MARINGA", "4101804": "APUCARANA"},
-    "RJ": {"3304557": "RIO DE JANEIRO", "3303500": "NOVA IGUACU", "3301702": "DUQUE DE CAXIAS", "3303302": "NITEROI"},
-    "RN": {"2408102": "NATAL", "2408003": "MOSSORO", "2403251": "CAICO"},
-    "RO": {"1100205": "PORTO VELHO", "1100049": "ARIQUEMES", "1100023": "CACOAL"},
-    "RR": {"1400100": "BOA VISTA", "1400472": "RORAINOPOLIS"},
-    "RS": {"4314902": "PORTO ALEGRE", "4304606": "CAXIAS DO SUL", "4316907": "SANTA MARIA", "4320000": "PELOTAS", "4307005": "GRAVATAI"},
-    "SC": {"8690": "JOINVILLE", "8621": "FLORIANOPOLIS", "8545": "BLUMENAU", "8558": "BRUSQUE", "8598": "CRICIUMA", "8564": "CAMBORIU", "8687": "JARAGUA DO SUL"},
-    "SE": {"2800308": "ARACAJU", "2803500": "LAGARTO", "2804003": "NOSSA SENHORA DO SOCORRO"},
-    "SP": {"3550308": "SAO PAULO", "3509502": "CAMPINAS", "3548708": "SANTOS", "3543402": "RIBEIRAO PRETO", "3506607": "BARUERI", "3548500": "SANTO ANDRE"},
-    "TO": {"1721000": "PALMAS", "1713800": "GURUPI", "1709500": "MIRACEMA DO TOCANTINS"}
+    "GO": {"5208707": "GOIANIA", "5201405": "ANAPOLIS", "5218806": "RIO VERDE", "5201108": "AGUAS LINDAS DE GOIAS"},
+    "MT": {"5103403": "CUIABA", "5102504": "CACERES", "5107602": "RONDONOPOLIS"},
+    "MS": {"5002704": "CAMPO GRANDE", "5003207": "CORUMBA", "5004106": "DOURADOS"}
 }
 
 # Opções de filtros
@@ -388,13 +373,26 @@ def buscar_imoveis_com_filtros(filtros):
         print(f"Selecionando estado: {filtros['estado']}")
         select_estado = Select(driver.find_element(By.ID, "cmb_estado"))
         select_estado.select_by_value(filtros['estado'])
-        time.sleep(2)
+        time.sleep(5)  # Aumentado para dar tempo do menu carregar
         
         # Selecionar cidade
         print(f"Selecionando cidade: {filtros['nome_cidade']}")
         select_cidade = Select(driver.find_element(By.ID, "cmb_cidade"))
         select_cidade.select_by_value(filtros['codigo_cidade'])
-        time.sleep(2)
+        time.sleep(3)  # Aumentado para garantir seleção correta
+        
+        # Verificar se a cidade foi selecionada corretamente
+        cidade_selecionada = select_cidade.first_selected_option.text
+        if filtros['nome_cidade'].upper() not in cidade_selecionada.upper():
+            print(f"⚠️ Aviso: Selecionou '{cidade_selecionada}' em vez de '{filtros['nome_cidade']}'")
+            print("   Tentando novamente...")
+            time.sleep(2)
+            select_cidade.select_by_value(filtros['codigo_cidade'])
+            time.sleep(2)
+            cidade_selecionada = select_cidade.first_selected_option.text
+            print(f"   Cidade selecionada após retry: {cidade_selecionada}")
+        else:
+            print(f"✅ Cidade selecionada corretamente: {cidade_selecionada}")
         
         # Clicar no primeiro botão "Próximo"
         print("Clicando no botão 'Próximo'...")

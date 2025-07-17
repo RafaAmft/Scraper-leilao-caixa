@@ -1,0 +1,47 @@
+
+📊 RELATÓRIO DETALHADO DE IMÓVEIS - CAIXA
+Data: 16/07/2025 20:47
+Cidades processadas: 12
+Total de imóveis encontrados: 30
+
+
+🏙️ JOINVILLE/SC: 10 imóveis encontrados
+  1. Cond Res Parque Jolie - R$ 215.000,00
+  2. 1 vaga(s) na garagem - Leilão SFI - Edital Único 0031/0225-CPA/RE<br>Número do imóvel: 844442210047-2<br>Número do item: 362<br>RUA TUIUTI,N. 3210 Apto. 106 BL 05 PAV 1,  , AVENTUREIRO<br>Despesas do imóvel, se houver: Condomínio e tributos sob responsabilidade do comprador.</font></span></div></li><li class="form-row clearfix"><br><div class="control-item control-span-5_12" style="margin-bottom:0.1em;"><span><a href="#" onclick="javascript:detalhe_imovel(8444422100472); return false;" style="color: #ff7200; font-size:0.80em;"><i class="fa fa-caret-right"></i>&nbsp;Detalhes do imóvel</a></span></div>&nbsp;</li></ul></div></li></ul><br><!--hr style='border: none; border-top: 1px solid #ddd;'/---><ul class="control-group no-bullets" style="width:100%;background:#fff;"><li class="group-block-item"><div class="fotoimovel-col1">	<img onerror="this.onerror=null;this.src='/sistema/assets/images/semfoto.png'" src="/fotos/F878771431533121.jpg" alt="Consulte detalhes do imóvel" title="Consulte detalhes do imóvel" class="fotoimovel" onclick="javascript:detalhe_imovel(8787714315331);"></div><div class="dadosimovel-col2"><ul class="form-set inside-set no-bullets"><li class="form-row clearfix" style="margin-bottom:0.5em;"><div class="control-item control-span-12_12"><a href="#" onclick="javascript:detalhe_imovel(8787714315331); return false;"><span><strong><font style="font-size:0.80em;">JOINVILLE - RESIDENCIAL TEIXEIRA XVIII - R$ 220.269,00
+  3. 60,42 m2, 2 quarto(s), 1 vaga(s) na garagem - Leilão SFI - Edital Único 0031/0225-CPA/RE<br>Número do imóvel: 878771431533-1<br>Número do item: 363<br>RUA MATILDE AMIM,N. 254 Apto. 106,  , BOA VISTA<br>Despesas do imóvel, se houver: Condomínio e tributos sob responsabilidade do comprador.</font></span></div></li><li class="form-row clearfix"><br><div class="control-item control-span-5_12" style="margin-bottom:0.1em;"><span><a href="#" onclick="javascript:detalhe_imovel(8787714315331); return false;" style="color: #ff7200; font-size:0.80em;"><i class="fa fa-caret-right"></i>&nbsp;Detalhes do imóvel</a></span></div>&nbsp;</li></ul></div></li></ul><br><!--hr style='border: none; border-top: 1px solid #ddd;'/---><ul class="control-group no-bullets" style="width:100%;background:#e8e9ec;"><li class="group-block-item"><div class="fotoimovel-col1">	<img onerror="this.onerror=null;this.src='/sistema/assets/images/semfoto.png'" src="/fotos/F844440958351121.jpg" alt="Consulte detalhes do imóvel" title="Consulte detalhes do imóvel" class="fotoimovel" onclick="javascript:detalhe_imovel(8444409583511);"></div><div class="dadosimovel-col2"><ul class="form-set inside-set no-bullets"><li class="form-row clearfix" style="margin-bottom:0.5em;"><div class="control-item control-span-12_12"><a href="#" onclick="javascript:detalhe_imovel(8444409583511); return false;"><span><strong><font style="font-size:0.80em;">JOINVILLE - BOEHMERWALD - R$ 385.500,00
+  4. 113,2 m2, 2 quarto(s) - Leilão SFI - Edital Único 0041/0225-CPA/RE<br>Número do imóvel: 844440958351-1<br>Número do item: 411<br>RUA ALFREDO COLIN,N. 311,  <br>Despesas do imóvel, se houver: Condomínio e tributos sob responsabilidade do comprador.</font></span></div></li><li class="form-row clearfix"><br><div class="control-item control-span-5_12" style="margin-bottom:0.1em;"><span><a href="#" onclick="javascript:detalhe_imovel(8444409583511); return false;" style="color: #ff7200; font-size:0.80em;"><i class="fa fa-caret-right"></i>&nbsp;Detalhes do imóvel</a></span></div>&nbsp;</li></ul></div></li></ul><br><!--hr style='border: none; border-top: 1px solid #ddd;'/---><ul class="control-group no-bullets" style="width:100%;background:#fff;"><li class="group-block-item"><div class="fotoimovel-col1">	<img onerror="this.onerror=null;this.src='/sistema/assets/images/semfoto.png'" src="/fotos/F844441450142021.jpg" alt="Consulte detalhes do imóvel" title="Consulte detalhes do imóvel" class="fotoimovel" onclick="javascript:detalhe_imovel(8444414501420);"></div><div class="dadosimovel-col2"><ul class="form-set inside-set no-bullets"><li class="form-row clearfix" style="margin-bottom:0.5em;"><div class="control-item control-span-12_12"><a href="#" onclick="javascript:detalhe_imovel(8444414501420); return false;"><span><strong><font style="font-size:0.80em;">JOINVILLE - RES BUSARELLO - R$ 203.940,58
+  5. 69,51 m2, 2 quarto(s) - Licitação Aberta 0019/0325-CPVE/RE<br>Número do imóvel: 844441450142-0<br>Número do item: 357<br>RUA FAUSTINO BUSARELLO,N. 386 CS 04,  , BOEHMERWALD<br>Despesas do imóvel, se houver: Condomínio (até 10% do valor de avaliação) e tributos sob responsabilidade do comprador.</font></span></div></li><li class="form-row clearfix"><br><div class="control-item control-span-5_12" style="margin-bottom:0.1em;"><span><a href="#" onclick="javascript:detalhe_imovel(8444414501420); return false;" style="color: #ff7200; font-size:0.80em;"><i class="fa fa-caret-right"></i>&nbsp;Detalhes do imóvel</a></span></div>&nbsp;</li></ul></div></li></ul><br><!--hr style='border: none; border-top: 1px solid #ddd;'/---><ul class="control-group no-bullets" style="width:100%;background:#e8e9ec;"><li class="group-block-item"><div class="fotoimovel-col1">	<img onerror="this.onerror=null;this.src='/sistema/assets/images/semfoto.png'" src="/fotos/F178770121323521.jpg" alt="Consulte detalhes do imóvel" title="Consulte detalhes do imóvel" class="fotoimovel" onclick="javascript:detalhe_imovel(1787701213235);"></div><div class="dadosimovel-col2"><ul class="form-set inside-set no-bullets"><li class="form-row clearfix" style="margin-bottom:0.5em;"><div class="control-item control-span-12_12"><a href="#" onclick="javascript:detalhe_imovel(1787701213235); return false;"><span><strong><font style="font-size:0.80em;">JOINVILLE - EASY CLUB PORTO BELO - R$ 378.000,00
+  ... e mais 5 imóveis
+🏙️ BLUMENAU/SC: 7 imóveis encontrados
+  1. AGUA VERDE - R$ 270.000,00
+  2. CONDOMÍNIO RESIDENCIAL BADEN - R$ 245.000,00
+  3. COND SPAZIO BAUHAUS - R$ 131.157,73
+  4. FORTALEZA - R$ 700.000,00
+  5. RESIDENCIAL NOVA GERMÂNIA - R$ 151.182,33
+  ... e mais 2 imóveis
+🏙️ BARRA VELHA/SC: Nenhum imóvel encontrado
+🏙️ BALNEARIO PICARRAS/SC: 7 imóveis encontrados
+  1. RES VILLA VÊNETO - R$ 205.000,00
+  2. RESIDENCIAL TOSCANA II - R$ 129.948,90
+  3. RESIDENCIAL DA SILVA - R$ 146.953,08
+  4. RESIDENCIAL TOSCANA II - R$ 94.518,84
+  5. ED RES FLOR DE LIZ - R$ 165.000,00
+  ... e mais 2 imóveis
+🏙️ ITAPEMA/SC: Nenhum imóvel encontrado
+🏙️ SAO FRANCISCO DO SUL/SC: 6 imóveis encontrados
+  1. RESIDENCIAL JARDIM DI GENOVA - R$ 171.016,84
+  2. RESIDENCIAL MONTE OLIMPO - R$ 527.194,17
+  3. RES ESTER MENEL - R$ 194.000,00
+  4. SOFT SAO LUIS - R$ 215.000,00
+  5. RESIDENCIAL ELZA GRUTZACHER - R$ 221.000,00
+  ... e mais 1 imóveis
+🏙️ GOVERNADOR CELSO RAMOS/SC: Nenhum imóvel encontrado
+🏙️ BADY BASSITT/SP: Nenhum imóvel encontrado
+🏙️ SAO JOSE DO RIO PRETO/SP: Nenhum imóvel encontrado
+🏙️ ANDRADINA/SP: Nenhum imóvel encontrado
+🏙️ CAMPO GRANDE/MS: Nenhum imóvel encontrado
+🏙️ TRES LAGOAS/MS: Nenhum imóvel encontrado
+
+---
+Relatório gerado automaticamente
+    
