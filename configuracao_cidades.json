@@ -1,0 +1,20 @@
+{
+  "data_configuracao": "2025-07-17T11:25:00",
+  "cidades": {
+    "SC": {
+      "8690": "JOINVILLE",
+      "8545": "BLUMENAU",
+      "8535": "BARRA VELHA",
+      "8523": "BALNEARIO BARRA DO SUL",
+      "8676": "ITAJAI",
+      "8634": "GOVERNADOR CELSO RAMOS"
+    },
+    "MS": {
+      "4198": "CAMPO GRANDE"
+    },
+    "SP": {
+      "9114": "BADY BASSITT"
+    }
+  },
+  "observacao": "Códigos atualizados automaticamente via Selenium em 2025-07-17. Verifique nomes exatos para cidades de SP se necessário."
+} 

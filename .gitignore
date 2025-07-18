@@ -128,35 +128,43 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Arquivos específicos do projeto
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.html
+# Scraper specific files
 *.csv
 *.json
+*.png
+*.txt
 !requirements.txt
-!setup.py
-!README.md
-!install.bat
-!install.sh
+!README*.txt
+!configuracao_cidades.json
 
-# Arquivos de teste temporários
-test_*.py
-debug_*.py
-analise_*.py
-extrator_*.py
-captura_*.py
-verifica_*.py
-resumo_*.py
+# Screenshots and data files
+screenshots/
+dados_imoveis/
+relatorios/
+arquivos_antigos/
 
-# Diretórios temporários
-temp/
-tmp/
-output/
-logs/ 
+# Temporary files
+*.tmp
+*.temp
+*.bak
 
-# Arquivos de configuração sensíveis
-config/gmail_config_multiplos.json
-.env 
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Chrome driver
+chromedriver.exe
+chromedriver
+
+# Logs
+*.log
+logs/
+
+# Email config (contains sensitive data)
+config/gmail_config_multiplos.json 
