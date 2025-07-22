@@ -13,6 +13,8 @@ on:
         required: false
         default: 'JOINVILLE'
         type: string
+  schedule:
+    - cron: '0 11 * * *'
 
 jobs:
   test-scraper:
