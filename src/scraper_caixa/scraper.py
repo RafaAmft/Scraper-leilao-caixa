@@ -456,19 +456,34 @@ def buscar_imoveis_com_filtros(filtros):
         # Acessar página inicial
         driver.get(URL)
         print("Acessando página de busca...")
-        time.sleep(3)
         
-        # Selecionar estado
+        # Aguardar página carregar completamente
+        wait = WebDriverWait(driver, 20)
+        
+        # Aguardar e selecionar estado
         print(f"Selecionando estado: {filtros['estado']}")
-        select_estado = Select(driver.find_element(By.ID, "cmb_estado"))
+        select_estado = wait.until(EC.element_to_be_clickable((By.ID, "cmb_estado")))
+        select_estado = Select(select_estado)
         select_estado.select_by_value(filtros['estado'])
-        time.sleep(5)  # Aumentado para dar tempo do menu carregar
+        print(f"✅ Estado selecionado: {filtros['estado']}")
         
-        # Selecionar cidade
+        # Aguardar carregamento das cidades (pode demorar)
+        print("⏳ Aguardando carregamento das cidades...")
+        time.sleep(3)  # Aguardar JavaScript carregar as cidades
+        
+        # Aguardar e selecionar cidade
         print(f"Selecionando cidade: {filtros['nome_cidade']}")
-        select_cidade = Select(driver.find_element(By.ID, "cmb_cidade"))
+        select_cidade = wait.until(EC.element_to_be_clickable((By.ID, "cmb_cidade")))
+        select_cidade = Select(select_cidade)
+        
+        # Verificar se há opções de cidade
+        if len(select_cidade.options) <= 1:  # Apenas "Selecione"
+            print("⚠️ Cidades ainda não carregaram. Aguardando mais tempo...")
+            time.sleep(5)
+            # Recarregar o select
+            select_cidade = Select(driver.find_element(By.ID, "cmb_cidade"))
+        
         select_cidade.select_by_value(filtros['codigo_cidade'])
-        time.sleep(3)  # Aumentado para garantir seleção correta
         
         # Verificar se a cidade foi selecionada corretamente
         cidade_selecionada = select_cidade.first_selected_option.text
@@ -486,9 +501,10 @@ def buscar_imoveis_com_filtros(filtros):
         # Clicar no primeiro botão "Próximo"
         print("Clicando no botão 'Próximo'...")
         try:
-            btn_next = driver.find_element(By.ID, "btn_next0")
+            btn_next = wait.until(EC.element_to_be_clickable((By.ID, "btn_next0")))
             btn_next.click()
         except Exception as e:
+            print(f"⚠️ Erro ao clicar no botão: {e}")
             driver.execute_script("document.getElementById('btn_next0').click();")
         
         time.sleep(3)
@@ -496,7 +512,8 @@ def buscar_imoveis_com_filtros(filtros):
         # Aplicar filtros adicionais se especificados
         if filtros['tipo_imovel']:
             try:
-                select_tipo = Select(driver.find_element(By.ID, "cmb_tp_imovel"))
+                select_tipo = wait.until(EC.element_to_be_clickable((By.ID, "cmb_tp_imovel")))
+                select_tipo = Select(select_tipo)
                 select_tipo.select_by_value(filtros['tipo_imovel'])
                 print(f"Tipo de imóvel: {TIPOS_IMOVEL[filtros['tipo_imovel']]}")
                 time.sleep(1)
@@ -505,7 +522,8 @@ def buscar_imoveis_com_filtros(filtros):
         
         if filtros['quartos']:
             try:
-                select_quartos = Select(driver.find_element(By.ID, "cmb_quartos"))
+                select_quartos = wait.until(EC.element_to_be_clickable((By.ID, "cmb_quartos")))
+                select_quartos = Select(select_quartos)
                 select_quartos.select_by_value(filtros['quartos'])
                 print(f"Quartos: {QUARTOS[filtros['quartos']]}")
                 time.sleep(1)
@@ -514,7 +532,8 @@ def buscar_imoveis_com_filtros(filtros):
         
         if filtros['faixa_valor']:
             try:
-                select_valor = Select(driver.find_element(By.ID, "cmb_faixa_vlr"))
+                select_valor = wait.until(EC.element_to_be_clickable((By.ID, "cmb_faixa_vlr")))
+                select_valor = Select(select_valor)
                 select_valor.select_by_value(filtros['faixa_valor'])
                 print(f"Faixa de valor: {FAIXAS_VALOR[filtros['faixa_valor']]}")
                 time.sleep(1)
@@ -524,9 +543,10 @@ def buscar_imoveis_com_filtros(filtros):
         # Clicar no segundo botão "Próximo"
         print("Clicando no segundo botão 'Próximo'...")
         try:
-            btn_next2 = driver.find_element(By.ID, "btn_next1")
+            btn_next2 = wait.until(EC.element_to_be_clickable((By.ID, "btn_next1")))
             btn_next2.click()
         except Exception as e:
+            print(f"⚠️ Erro ao clicar no segundo botão: {e}")
             driver.execute_script("document.getElementById('btn_next1').click();")
         
         print("Aguardando carregamento dos resultados...")
