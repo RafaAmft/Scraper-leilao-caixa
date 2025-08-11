@@ -1,0 +1,76 @@
+﻿on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-simples:
+    name: 🧪 Teste Básico
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: 📦 Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: 🖥️ Instalar Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          google-chrome --version
+          
+      - name: 🔧 Configurar variáveis de ambiente
+        run: |
+          echo "PYTHONPATH=\/src" >> \
+          
+      - name: 🧪 Teste básico do ambiente
+        run: |
+          echo "🧪 TESTE BÁSICO DO AMBIENTE"
+          echo "============================"
+          
+          python -c "
+          import sys
+          sys.path.append('src')
+          from scraper_caixa.scraper import configurar_chromedriver
+          print('✅ Módulo scraper importado com sucesso!')
+          "
+          
+          python -c "
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.chrome.service import Service
+          from webdriver_manager.chrome import ChromeDriverManager
+          
+          print('🔧 Configurando Chrome...')
+          chrome_options = Options()
+          chrome_options.add_argument('--headless')
+          chrome_options.add_argument('--no-sandbox')
+          chrome_options.add_argument('--disable-dev-shm-usage')
+          
+          driver_path = ChromeDriverManager().install()
+          print(f'ChromeDriver: {driver_path}')
+          
+          service = Service(driver_path)
+          driver = webdriver.Chrome(service=service, options=chrome_options)
+          print('✅ Chrome funcionando!')
+          
+          driver.get('https://httpbin.org/status/200')
+          print(f'✅ Página carregada: {driver.title}')
+          
+          driver.quit()
+          print('✅ Teste concluído!')
+          "
+          
+      - name: 📊 Resumo do teste
+        run: |
+          echo "🎉 TESTE BÁSICO CONCLUÍDO!"
+          echo "O ambiente está funcionando corretamente."
