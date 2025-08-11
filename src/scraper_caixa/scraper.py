@@ -20,6 +20,22 @@ def configurar_chromedriver(headless=True):
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     
+    # Opções anti-detecção para contornar Bot Manager
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-plugins")
+    chrome_options.add_argument("--disable-images")
+    chrome_options.add_argument("--disable-javascript")
+    chrome_options.add_argument("--disable-web-security")
+    chrome_options.add_argument("--allow-running-insecure-content")
+    chrome_options.add_argument("--disable-features=VizDisplayCompositor")
+    chrome_options.add_argument("--disable-ipc-flooding-protection")
+    
+    # User agent mais realista
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36")
+    
     if headless:
         chrome_options.add_argument("--headless")
     
@@ -35,6 +51,10 @@ def configurar_chromedriver(headless=True):
             
         service = Service(driver_path)
         driver = webdriver.Chrome(service=service, options=chrome_options)
+        
+        # Executar script para remover indicadores de automação
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        
         return driver
         
     except Exception as e:
@@ -44,6 +64,7 @@ def configurar_chromedriver(headless=True):
         try:
             # Tentar usar ChromeDriver do sistema
             driver = webdriver.Chrome(options=chrome_options)
+            driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
             return driver
         except Exception as e2:
             print(f"❌ Erro com Chrome do sistema: {e2}")
@@ -53,6 +74,7 @@ def configurar_chromedriver(headless=True):
             try:
                 service = Service("/usr/bin/chromedriver")
                 driver = webdriver.Chrome(service=service, options=chrome_options)
+                driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
                 return driver
             except Exception as e3:
                 print(f"❌ Falha total ao configurar ChromeDriver: {e3}")
