@@ -10,6 +10,53 @@ from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
 from datetime import datetime
 import re
+import os
+
+def configurar_chromedriver(headless=True):
+    """Configura o ChromeDriver de forma robusta para funcionar em diferentes ambientes"""
+    chrome_options = Options()
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    
+    if headless:
+        chrome_options.add_argument("--headless")
+    
+    # Configuração mais robusta do ChromeDriver
+    try:
+        # Tentar usar ChromeDriverManager primeiro
+        driver_path = ChromeDriverManager().install()
+        print(f"🔧 ChromeDriver encontrado em: {driver_path}")
+        
+        # Verificar se o arquivo é executável
+        if not os.path.isfile(driver_path):
+            raise Exception(f"ChromeDriver não encontrado em: {driver_path}")
+            
+        service = Service(driver_path)
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        return driver
+        
+    except Exception as e:
+        print(f"⚠️ Erro com ChromeDriverManager: {e}")
+        print("🔄 Tentando configuração alternativa...")
+        
+        try:
+            # Tentar usar ChromeDriver do sistema
+            driver = webdriver.Chrome(options=chrome_options)
+            return driver
+        except Exception as e2:
+            print(f"❌ Erro com Chrome do sistema: {e2}")
+            print("🔄 Tentando configuração manual...")
+            
+            # Última tentativa: usar caminho padrão do sistema
+            try:
+                service = Service("/usr/bin/chromedriver")
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+                return driver
+            except Exception as e3:
+                print(f"❌ Falha total ao configurar ChromeDriver: {e3}")
+                raise Exception(f"Não foi possível configurar o ChromeDriver: {e3}")
 
 URL = "https://venda-imoveis.caixa.gov.br/sistema/busca-imovel.asp?sltTipoBusca=imoveis"
 
@@ -401,11 +448,7 @@ def verificar_proxima_pagina(driver):
 def buscar_imoveis_com_filtros(filtros):
     """Executa a busca de imóveis com os filtros especificados, navegando por múltiplas páginas"""
     
-    chrome_options = Options()
-    chrome_options.add_argument("--window-size=1920,1080")
-    
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver = configurar_chromedriver()
     
     try:
         print(f"\n🚀 Iniciando busca de imóveis em {filtros['nome_cidade']}/{filtros['estado']}...")
@@ -629,12 +672,7 @@ def buscar_estados_disponiveis():
     """Busca automaticamente todos os estados disponíveis no site da Caixa"""
     print("🔍 Buscando estados disponíveis no site da Caixa...")
     
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Executar sem interface gráfica
-    chrome_options.add_argument("--window-size=1920,1080")
-    
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver = configurar_chromedriver(headless=True) # Executar sem interface gráfica para CI/CD
     
     try:
         # Acessar página inicial
@@ -668,12 +706,7 @@ def buscar_cidades_por_estado(estado_sigla):
     """Busca as cidades disponíveis para um estado específico"""
     print(f"🔍 Buscando cidades disponíveis para {estado_sigla}...")
     
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--window-size=1920,1080")
-    
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver = configurar_chromedriver(headless=True) # Executar sem interface gráfica para CI/CD
     
     try:
         # Acessar página inicial
