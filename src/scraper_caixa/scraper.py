@@ -458,31 +458,84 @@ def buscar_imoveis_com_filtros(filtros):
         print("Acessando página de busca...")
         
         # Aguardar página carregar completamente
-        wait = WebDriverWait(driver, 20)
+        wait = WebDriverWait(driver, 30)  # Aumentado para 30 segundos
         
         # Aguardar e selecionar estado
         print(f"Selecionando estado: {filtros['estado']}")
-        select_estado = wait.until(EC.element_to_be_clickable((By.ID, "cmb_estado")))
-        select_estado = Select(select_estado)
+        
+        # Primeiro, aguardar o elemento estar presente na página
+        select_estado_element = wait.until(EC.presence_of_element_located((By.ID, "cmb_estado")))
+        print("✅ Elemento de estado encontrado na página")
+        
+        # Aguardar um pouco para garantir que está totalmente carregado
+        time.sleep(2)
+        
+        # Agora tentar torná-lo clicável
+        try:
+            select_estado_element = wait.until(EC.element_to_be_clickable((By.ID, "cmb_estado")))
+            print("✅ Elemento de estado está clicável")
+        except:
+            print("⚠️ Elemento não está clicável, tentando continuar mesmo assim...")
+        
+        # Criar o objeto Select
+        select_estado = Select(select_estado_element)
+        
+        # Verificar se há opções disponíveis
+        if len(select_estado.options) <= 1:
+            print("⚠️ Poucas opções de estado. Aguardando mais tempo...")
+            time.sleep(5)
+            select_estado = Select(driver.find_element(By.ID, "cmb_estado"))
+        
+        # Selecionar o estado
         select_estado.select_by_value(filtros['estado'])
         print(f"✅ Estado selecionado: {filtros['estado']}")
         
         # Aguardar carregamento das cidades (pode demorar)
         print("⏳ Aguardando carregamento das cidades...")
-        time.sleep(3)  # Aguardar JavaScript carregar as cidades
+        time.sleep(5)  # Aguardar JavaScript carregar as cidades
         
         # Aguardar e selecionar cidade
         print(f"Selecionando cidade: {filtros['nome_cidade']}")
-        select_cidade = wait.until(EC.element_to_be_clickable((By.ID, "cmb_cidade")))
-        select_cidade = Select(select_cidade)
+        
+        # Aguardar o elemento de cidade estar presente
+        select_cidade_element = wait.until(EC.presence_of_element_located((By.ID, "cmb_cidade")))
+        print("✅ Elemento de cidade encontrado na página")
+        
+        # Aguardar um pouco mais para as cidades carregarem
+        time.sleep(3)
+        
+        # Criar o objeto Select para cidade
+        select_cidade = Select(select_cidade_element)
         
         # Verificar se há opções de cidade
-        if len(select_cidade.options) <= 1:  # Apenas "Selecione"
+        num_opcoes_cidade = len(select_cidade.options)
+        print(f"📊 Campo de cidade tem {num_opcoes_cidade} opções")
+        
+        if num_opcoes_cidade <= 1:  # Apenas "Selecione"
             print("⚠️ Cidades ainda não carregaram. Aguardando mais tempo...")
-            time.sleep(5)
+            time.sleep(8)  # Aguardar mais tempo
             # Recarregar o select
             select_cidade = Select(driver.find_element(By.ID, "cmb_cidade"))
+            num_opcoes_cidade = len(select_cidade.options)
+            print(f"📊 Após espera: {num_opcoes_cidade} opções")
         
+        # Verificar se a cidade desejada está disponível
+        cidade_encontrada = False
+        for option in select_cidade.options:
+            if option.get_attribute('value') == filtros['codigo_cidade']:
+                cidade_encontrada = True
+                break
+        
+        if not cidade_encontrada:
+            print(f"⚠️ Cidade {filtros['nome_cidade']} não encontrada nas opções disponíveis")
+            print("📋 Opções disponíveis:")
+            for option in select_cidade.options[:10]:  # Primeiras 10
+                print(f"   - {option.get_attribute('value')}: {option.text}")
+            if len(select_cidade.options) > 10:
+                print(f"   ... e mais {len(select_cidade.options) - 10} opções")
+            raise Exception(f"Cidade {filtros['nome_cidade']} não encontrada")
+        
+        # Selecionar a cidade
         select_cidade.select_by_value(filtros['codigo_cidade'])
         
         # Verificar se a cidade foi selecionada corretamente
@@ -503,9 +556,12 @@ def buscar_imoveis_com_filtros(filtros):
         try:
             btn_next = wait.until(EC.element_to_be_clickable((By.ID, "btn_next0")))
             btn_next.click()
+            print("✅ Primeiro botão Próximo clicado")
         except Exception as e:
             print(f"⚠️ Erro ao clicar no botão: {e}")
+            print("🔄 Tentando com JavaScript...")
             driver.execute_script("document.getElementById('btn_next0').click();")
+            print("✅ Primeiro botão Próximo clicado via JavaScript")
         
         time.sleep(3)
         
@@ -545,9 +601,12 @@ def buscar_imoveis_com_filtros(filtros):
         try:
             btn_next2 = wait.until(EC.element_to_be_clickable((By.ID, "btn_next1")))
             btn_next2.click()
+            print("✅ Segundo botão Próximo clicado")
         except Exception as e:
             print(f"⚠️ Erro ao clicar no segundo botão: {e}")
+            print("🔄 Tentando com JavaScript...")
             driver.execute_script("document.getElementById('btn_next1').click();")
+            print("✅ Segundo botão Próximo clicado via JavaScript")
         
         print("Aguardando carregamento dos resultados...")
         time.sleep(10)
