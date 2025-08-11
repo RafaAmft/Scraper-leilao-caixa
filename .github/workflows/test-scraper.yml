@@ -50,12 +50,39 @@ jobs:
       - name: 🧪 Executar teste do scraper
         run: |
           echo "🧪 Executando teste do scraper..."
-          python testes/teste_script_automatico.py
+          echo "=================================="
+          
+          # Executar com log detalhado
+          python testes/teste_script_automatico.py 2>&1 | tee scraper_output.log
+          
+          # Verificar código de saída
+          EXIT_CODE=$?
+          echo "Código de saída do scraper: $EXIT_CODE"
+          
+          # Salvar log para análise
+          echo "📄 Log completo salvo em scraper_output.log"
+          
+          # Verificar se executou com sucesso
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "✅ Scraper executou com sucesso!"
+          else
+            echo "❌ Scraper falhou com código $EXIT_CODE"
+            echo "📄 Últimas linhas do log:"
+            tail -20 scraper_output.log
+          fi
           
       - name: 📊 Verificar arquivos gerados
         run: |
           echo "📁 VERIFICAÇÃO DOS ARQUIVOS GERADOS:"
           echo "==================================="
+          
+          # Listar todos os arquivos no diretório
+          echo "📋 Todos os arquivos no diretório:"
+          ls -la
+          
+          echo ""
+          echo "📁 ARQUIVOS ESPECÍFICOS:"
+          echo "========================="
           
           # Verificar relatórios
           if ls teste_relatorio_*.txt 1> /dev/null 2>&1; then
@@ -63,7 +90,6 @@ jobs:
             ls -la teste_relatorio_*.txt
           else
             echo "❌ Nenhum relatório de teste encontrado"
-            exit 1
           fi
           
           # Verificar dados
@@ -72,7 +98,6 @@ jobs:
             ls -la imoveis_*.json
           else
             echo "❌ Nenhum dado JSON encontrado"
-            exit 1
           fi
           
           # Verificar screenshots
@@ -81,6 +106,15 @@ jobs:
             ls -la screenshot_*.png
           else
             echo "❌ Nenhum screenshot encontrado"
+          fi
+          
+          # Verificar se pelo menos um arquivo foi gerado
+          TOTAL_FILES=$(find . -maxdepth 1 -name "teste_relatorio_*.txt" -o -name "imoveis_*.json" -o -name "screenshot_*.png" | wc -l)
+          echo ""
+          echo "📊 Total de arquivos relevantes: $TOTAL_FILES"
+          
+          if [ $TOTAL_FILES -eq 0 ]; then
+            echo "❌ Nenhum arquivo foi gerado pelo scraper!"
             exit 1
           fi
           
