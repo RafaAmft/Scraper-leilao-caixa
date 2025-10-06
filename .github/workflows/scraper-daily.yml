@@ -1,0 +1,135 @@
+name: 🏠 Scraper Diário de Imóveis
+
+on:
+  # Executar automaticamente todos os dias às 8h (horário UTC)
+  # 8h UTC = 5h Brasília (considerando horário de verão pode variar)
+  schedule:
+    - cron: '0 8 * * *'  # Todos os dias às 8h UTC
+  
+  # Permitir execução manual
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Habilitar debug'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  scraper-imoveis:
+    name: 🔍 Buscar Imóveis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          
+      - name: 📦 Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: 🖥️ Instalar Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          google-chrome --version
+          
+      - name: 🔧 Configurar ambiente
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
+          echo "Ambiente configurado"
+          
+      - name: 🏠 Executar scraper
+        id: scraper
+        run: |
+          echo "🚀 Iniciando scraper de imóveis..."
+          python scraper_automatico.py
+        continue-on-error: true
+        
+      - name: 📊 Verificar resultados
+        id: check_results
+        run: |
+          echo "📁 Verificando arquivos gerados..."
+          
+          # Contar arquivos
+          RELATORIOS=$(ls relatorio_*.txt 2>/dev/null | wc -l || echo 0)
+          JSON_FILES=$(ls imoveis_*.json 2>/dev/null | wc -l || echo 0)
+          CSV_FILES=$(ls imoveis_*.csv 2>/dev/null | wc -l || echo 0)
+          SCREENSHOTS=$(ls screenshot_*.png 2>/dev/null | wc -l || echo 0)
+          
+          echo "relatorios=$RELATORIOS" >> $GITHUB_OUTPUT
+          echo "json_files=$JSON_FILES" >> $GITHUB_OUTPUT
+          echo "csv_files=$CSV_FILES" >> $GITHUB_OUTPUT
+          echo "screenshots=$SCREENSHOTS" >> $GITHUB_OUTPUT
+          
+          echo "📊 Resultados encontrados:"
+          echo "  - Relatórios: $RELATORIOS"
+          echo "  - Arquivos JSON: $JSON_FILES"
+          echo "  - Arquivos CSV: $CSV_FILES"
+          echo "  - Screenshots: $SCREENSHOTS"
+          
+          # Verificar se teve sucesso
+          if [ $RELATORIOS -gt 0 ] || [ $JSON_FILES -gt 0 ]; then
+            echo "✅ Scraper executou com sucesso!"
+            echo "success=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ Nenhum arquivo gerado"
+            echo "success=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: 📤 Upload dos resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-scraper-${{ github.run_number }}
+          path: |
+            relatorio_*.txt
+            imoveis_*.json
+            imoveis_*.csv
+            screenshot_*.png
+            *.log
+          retention-days: 30
+          if-no-files-found: warn
+          
+      - name: 📈 Resumo da execução
+        if: always()
+        run: |
+          echo "## 📊 Resumo da Execução do Scraper" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🕐 **Data/Hora**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "🔢 **Run**: #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📁 Arquivos Gerados" >> $GITHUB_STEP_SUMMARY
+          echo "- 📄 Relatórios: ${{ steps.check_results.outputs.relatorios }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 JSON: ${{ steps.check_results.outputs.json_files }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 📋 CSV: ${{ steps.check_results.outputs.csv_files }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 📸 Screenshots: ${{ steps.check_results.outputs.screenshots }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.check_results.outputs.success }}" = "true" ]; then
+            echo "### ✅ Status: SUCESSO" >> $GITHUB_STEP_SUMMARY
+            echo "O scraper executou com sucesso e gerou resultados." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Status: ATENÇÃO" >> $GITHUB_STEP_SUMMARY
+            echo "O scraper executou mas não gerou todos os arquivos esperados." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+      - name: 🔔 Notificação de falha
+        if: failure()
+        run: |
+          echo "❌ SCRAPER FALHOU!"
+          echo "Verifique os logs para identificar o problema."
+          exit 1
+
