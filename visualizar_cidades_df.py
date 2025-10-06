@@ -44,7 +44,7 @@ def main():
         print("Regioes Administrativas Incluidas:")
         for codigo, nome in sorted(ESTADOS_CIDADES["DF"].items(), key=lambda x: x[1]):
             print(f"   > {nome} (codigo: {codigo})")
-        print("\nDica: Use o codigo 5300100 para buscar em TODO o DF")
+        print("\nNOTA: Codigos do DF sao internos da Caixa, NAO sao codigos IBGE!")
         print("="*70 + "\n")
 
 if __name__ == "__main__":

@@ -158,13 +158,16 @@ ESTADOS_CIDADES: Dict[str, Dict[str, str]] = {
         "5004106": "DOURADOS",
     },
     "DF": {
-        "5300108": "BRASILIA",
-        "5300100": "DISTRITO FEDERAL",
-        "5300109": "BRASILIA - PLANO PILOTO",
-        "5300110": "TAGUATINGA",
-        "5300111": "CEILANDIA",
-        "5300112": "SAMAMBAIA",
-        "5300113": "GAMA",
+        "1809": "BRASILIA",
+        "1820": "CEILANDIA",
+        "1822": "GAMA",
+        "1823": "GUARA",
+        "1826": "NUCLEO BANDEIRANTE",
+        "1829": "RECANTO DAS EMAS",
+        "1831": "SAMAMBAIA",
+        "1832": "SANTA MARIA",
+        "1834": "SOBRADINHO",
+        "1835": "TAGUATINGA",
     },
 }
 
