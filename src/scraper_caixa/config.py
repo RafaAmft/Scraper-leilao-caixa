@@ -157,6 +157,15 @@ ESTADOS_CIDADES: Dict[str, Dict[str, str]] = {
         "5003207": "CORUMBA",
         "5004106": "DOURADOS",
     },
+    "DF": {
+        "5300108": "BRASILIA",
+        "5300100": "DISTRITO FEDERAL",
+        "5300109": "BRASILIA - PLANO PILOTO",
+        "5300110": "TAGUATINGA",
+        "5300111": "CEILANDIA",
+        "5300112": "SAMAMBAIA",
+        "5300113": "GAMA",
+    },
 }
 
 # Tipos de imóveis

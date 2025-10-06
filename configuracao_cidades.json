@@ -1,5 +1,5 @@
 {
-  "data_configuracao": "2025-07-17T11:25:00",
+  "data_configuracao": "2025-08-11T14:00:00",
   "cidades": {
     "SC": {
       "8690": "JOINVILLE",
@@ -14,7 +14,14 @@
     },
     "SP": {
       "9114": "BADY BASSITT"
+    },
+    "DF": {
+      "5300108": "BRASILIA",
+      "5300110": "TAGUATINGA",
+      "5300111": "CEILANDIA",
+      "5300112": "SAMAMBAIA",
+      "5300113": "GAMA"
     }
   },
-  "observacao": "Códigos atualizados automaticamente via Selenium em 2025-07-17. Verifique nomes exatos para cidades de SP se necessário."
+  "observacao": "Códigos atualizados em 2025-08-11. Incluído Distrito Federal (DF) com principais regiões administrativas."
 } 
