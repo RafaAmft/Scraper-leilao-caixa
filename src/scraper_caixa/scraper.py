@@ -11,9 +11,41 @@ import pandas as pd
 from datetime import datetime
 import re
 import os
+import sys
 
+# Adicionar diretório utils ao path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'utils'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'config'))
+
+try:
+    from config.logging_config import setup_logging, get_logger, log_performance, log_errors
+    from utils.retry import retry_selenium_operations, retry_network_operations
+    from utils.validation import DataValidator
+    logger = get_logger('scraper')
+except ImportError as e:
+    print(f"⚠️ Erro ao importar módulos de logging/retry: {e}")
+    print("🔄 Usando logging básico...")
+    
+    # Fallback para logging básico
+    import logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger('scraper')
+    
+    # Decorators vazios como fallback
+    def log_performance(func): return func
+    def log_errors(func): return func
+    def retry_selenium_operations(*args, **kwargs): 
+        def decorator(func): return func
+        return decorator
+    def retry_network_operations(*args, **kwargs): 
+        def decorator(func): return func
+        return decorator
+
+@log_errors
 def configurar_chromedriver(headless=True):
     """Configura o ChromeDriver de forma robusta para funcionar em diferentes ambientes"""
+    logger.info("🔧 Iniciando configuração do ChromeDriver...")
+    
     chrome_options = Options()
     chrome_options.add_argument("--window-size=1920,1080")
     chrome_options.add_argument("--no-sandbox")
@@ -38,12 +70,14 @@ def configurar_chromedriver(headless=True):
     
     if headless:
         chrome_options.add_argument("--headless")
+        logger.info("🔧 Modo headless ativado")
     
     # Configuração mais robusta do ChromeDriver
     try:
         # Tentar usar ChromeDriverManager primeiro
+        logger.info("🔄 Tentando ChromeDriverManager...")
         driver_path = ChromeDriverManager().install()
-        print(f"🔧 ChromeDriver encontrado em: {driver_path}")
+        logger.info(f"✅ ChromeDriver encontrado em: {driver_path}")
         
         # Verificar se o arquivo é executável
         if not os.path.isfile(driver_path):
@@ -54,30 +88,35 @@ def configurar_chromedriver(headless=True):
         
         # Executar script para remover indicadores de automação
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        logger.info("✅ ChromeDriver configurado com sucesso via ChromeDriverManager")
         
         return driver
         
     except Exception as e:
-        print(f"⚠️ Erro com ChromeDriverManager: {e}")
-        print("🔄 Tentando configuração alternativa...")
+        logger.warning(f"⚠️ Erro com ChromeDriverManager: {e}")
+        logger.info("🔄 Tentando configuração alternativa...")
         
         try:
             # Tentar usar ChromeDriver do sistema
+            logger.info("🔄 Tentando ChromeDriver do sistema...")
             driver = webdriver.Chrome(options=chrome_options)
             driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            logger.info("✅ ChromeDriver configurado com sucesso via sistema")
             return driver
         except Exception as e2:
-            print(f"❌ Erro com Chrome do sistema: {e2}")
-            print("🔄 Tentando configuração manual...")
+            logger.warning(f"⚠️ Erro com Chrome do sistema: {e2}")
+            logger.info("🔄 Tentando configuração manual...")
             
             # Última tentativa: usar caminho padrão do sistema
             try:
+                logger.info("🔄 Tentando caminho manual...")
                 service = Service("/usr/bin/chromedriver")
                 driver = webdriver.Chrome(service=service, options=chrome_options)
                 driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+                logger.info("✅ ChromeDriver configurado com sucesso via caminho manual")
                 return driver
             except Exception as e3:
-                print(f"❌ Falha total ao configurar ChromeDriver: {e3}")
+                logger.error(f"❌ Falha total ao configurar ChromeDriver: {e3}")
                 raise Exception(f"Não foi possível configurar o ChromeDriver: {e3}")
 
 URL = "https://venda-imoveis.caixa.gov.br/sistema/busca-imovel.asp?sltTipoBusca=imoveis"
@@ -467,27 +506,29 @@ def verificar_proxima_pagina(driver):
         print(f"❌ Erro ao verificar próxima página: {e}")
         return None
 
+@log_performance
+@log_errors
 def buscar_imoveis_com_filtros(filtros):
     """Executa a busca de imóveis com os filtros especificados, navegando por múltiplas páginas"""
+    
+    logger.info(f"🚀 Iniciando busca de imóveis em {filtros['nome_cidade']}/{filtros['estado']}")
+    logger.info(f"🔧 Filtros aplicados: {filtros}")
     
     driver = configurar_chromedriver()
     
     try:
-        print(f"\n🚀 Iniciando busca de imóveis em {filtros['nome_cidade']}/{filtros['estado']}...")
-        
-        # Acessar página inicial
+        logger.info("🌐 Acessando página de busca...")
         driver.get(URL)
-        print("Acessando página de busca...")
         
         # Aguardar página carregar completamente
         wait = WebDriverWait(driver, 30)  # Aumentado para 30 segundos
         
         # Aguardar e selecionar estado
-        print(f"Selecionando estado: {filtros['estado']}")
+        logger.info(f"📍 Selecionando estado: {filtros['estado']}")
         
         # Primeiro, aguardar o elemento estar presente na página
         select_estado_element = wait.until(EC.presence_of_element_located((By.ID, "cmb_estado")))
-        print("✅ Elemento de estado encontrado na página")
+        logger.info("✅ Elemento de estado encontrado na página")
         
         # Aguardar um pouco para garantir que está totalmente carregado
         time.sleep(2)
@@ -495,33 +536,33 @@ def buscar_imoveis_com_filtros(filtros):
         # Agora tentar torná-lo clicável
         try:
             select_estado_element = wait.until(EC.element_to_be_clickable((By.ID, "cmb_estado")))
-            print("✅ Elemento de estado está clicável")
+            logger.info("✅ Elemento de estado está clicável")
         except:
-            print("⚠️ Elemento não está clicável, tentando continuar mesmo assim...")
+            logger.warning("⚠️ Elemento não está clicável, tentando continuar mesmo assim...")
         
         # Criar o objeto Select
         select_estado = Select(select_estado_element)
         
         # Verificar se há opções disponíveis
         if len(select_estado.options) <= 1:
-            print("⚠️ Poucas opções de estado. Aguardando mais tempo...")
+            logger.warning("⚠️ Poucas opções de estado. Aguardando mais tempo...")
             time.sleep(5)
             select_estado = Select(driver.find_element(By.ID, "cmb_estado"))
         
         # Selecionar o estado
         select_estado.select_by_value(filtros['estado'])
-        print(f"✅ Estado selecionado: {filtros['estado']}")
+        logger.info(f"✅ Estado selecionado: {filtros['estado']}")
         
         # Aguardar carregamento das cidades (pode demorar)
-        print("⏳ Aguardando carregamento das cidades...")
+        logger.info("⏳ Aguardando carregamento das cidades...")
         time.sleep(5)  # Aguardar JavaScript carregar as cidades
         
         # Aguardar e selecionar cidade
-        print(f"Selecionando cidade: {filtros['nome_cidade']}")
+        logger.info(f"🏙️ Selecionando cidade: {filtros['nome_cidade']}")
         
         # Aguardar o elemento de cidade estar presente
         select_cidade_element = wait.until(EC.presence_of_element_located((By.ID, "cmb_cidade")))
-        print("✅ Elemento de cidade encontrado na página")
+        logger.info("✅ Elemento de cidade encontrado na página")
         
         # Aguardar um pouco mais para as cidades carregarem
         time.sleep(3)
@@ -531,15 +572,15 @@ def buscar_imoveis_com_filtros(filtros):
         
         # Verificar se há opções de cidade
         num_opcoes_cidade = len(select_cidade.options)
-        print(f"📊 Campo de cidade tem {num_opcoes_cidade} opções")
+        logger.info(f"📊 Campo de cidade tem {num_opcoes_cidade} opções")
         
         if num_opcoes_cidade <= 1:  # Apenas "Selecione"
-            print("⚠️ Cidades ainda não carregaram. Aguardando mais tempo...")
+            logger.warning("⚠️ Cidades ainda não carregaram. Aguardando mais tempo...")
             time.sleep(8)  # Aguardar mais tempo
             # Recarregar o select
             select_cidade = Select(driver.find_element(By.ID, "cmb_cidade"))
             num_opcoes_cidade = len(select_cidade.options)
-            print(f"📊 Após espera: {num_opcoes_cidade} opções")
+            logger.info(f"📊 Após espera: {num_opcoes_cidade} opções")
         
         # Verificar se a cidade desejada está disponível
         cidade_encontrada = False
@@ -549,12 +590,12 @@ def buscar_imoveis_com_filtros(filtros):
                 break
         
         if not cidade_encontrada:
-            print(f"⚠️ Cidade {filtros['nome_cidade']} não encontrada nas opções disponíveis")
-            print("📋 Opções disponíveis:")
+            logger.error(f"⚠️ Cidade {filtros['nome_cidade']} não encontrada nas opções disponíveis")
+            logger.info("📋 Opções disponíveis:")
             for option in select_cidade.options[:10]:  # Primeiras 10
-                print(f"   - {option.get_attribute('value')}: {option.text}")
+                logger.info(f"   - {option.get_attribute('value')}: {option.text}")
             if len(select_cidade.options) > 10:
-                print(f"   ... e mais {len(select_cidade.options) - 10} opções")
+                logger.info(f"   ... e mais {len(select_cidade.options) - 10} opções")
             raise Exception(f"Cidade {filtros['nome_cidade']} não encontrada")
         
         # Selecionar a cidade
@@ -563,27 +604,27 @@ def buscar_imoveis_com_filtros(filtros):
         # Verificar se a cidade foi selecionada corretamente
         cidade_selecionada = select_cidade.first_selected_option.text
         if filtros['nome_cidade'].upper() not in cidade_selecionada.upper():
-            print(f"⚠️ Aviso: Selecionou '{cidade_selecionada}' em vez de '{filtros['nome_cidade']}'")
-            print("   Tentando novamente...")
+            logger.warning(f"⚠️ Aviso: Selecionou '{cidade_selecionada}' em vez de '{filtros['nome_cidade']}'")
+            logger.info("   Tentando novamente...")
             time.sleep(2)
             select_cidade.select_by_value(filtros['codigo_cidade'])
             time.sleep(2)
             cidade_selecionada = select_cidade.first_selected_option.text
-            print(f"   Cidade selecionada após retry: {cidade_selecionada}")
+            logger.info(f"   Cidade selecionada após retry: {cidade_selecionada}")
         else:
-            print(f"✅ Cidade selecionada corretamente: {cidade_selecionada}")
+            logger.info(f"✅ Cidade selecionada corretamente: {cidade_selecionada}")
         
         # Clicar no primeiro botão "Próximo"
-        print("Clicando no botão 'Próximo'...")
+        logger.info("🔄 Clicando no botão 'Próximo'...")
         try:
             btn_next = wait.until(EC.element_to_be_clickable((By.ID, "btn_next0")))
             btn_next.click()
-            print("✅ Primeiro botão Próximo clicado")
+            logger.info("✅ Primeiro botão Próximo clicado")
         except Exception as e:
-            print(f"⚠️ Erro ao clicar no botão: {e}")
-            print("🔄 Tentando com JavaScript...")
+            logger.warning(f"⚠️ Erro ao clicar no botão: {e}")
+            logger.info("🔄 Tentando com JavaScript...")
             driver.execute_script("document.getElementById('btn_next0').click();")
-            print("✅ Primeiro botão Próximo clicado via JavaScript")
+            logger.info("✅ Primeiro botão Próximo clicado via JavaScript")
         
         time.sleep(3)
         
@@ -593,44 +634,44 @@ def buscar_imoveis_com_filtros(filtros):
                 select_tipo = wait.until(EC.element_to_be_clickable((By.ID, "cmb_tp_imovel")))
                 select_tipo = Select(select_tipo)
                 select_tipo.select_by_value(filtros['tipo_imovel'])
-                print(f"Tipo de imóvel: {TIPOS_IMOVEL[filtros['tipo_imovel']]}")
+                logger.info(f"🏠 Tipo de imóvel: {TIPOS_IMOVEL[filtros['tipo_imovel']]}")
                 time.sleep(1)
             except Exception as e:
-                print(f"Erro ao selecionar tipo: {e}")
+                logger.warning(f"⚠️ Erro ao selecionar tipo: {e}")
         
         if filtros['quartos']:
             try:
                 select_quartos = wait.until(EC.element_to_be_clickable((By.ID, "cmb_quartos")))
                 select_quartos = Select(select_quartos)
                 select_quartos.select_by_value(filtros['quartos'])
-                print(f"Quartos: {QUARTOS[filtros['quartos']]}")
+                logger.info(f"🛏️ Quartos: {QUARTOS[filtros['quartos']]}")
                 time.sleep(1)
             except Exception as e:
-                print(f"Erro ao selecionar quartos: {e}")
+                logger.warning(f"⚠️ Erro ao selecionar quartos: {e}")
         
         if filtros['faixa_valor']:
             try:
                 select_valor = wait.until(EC.element_to_be_clickable((By.ID, "cmb_faixa_vlr")))
                 select_valor = Select(select_valor)
                 select_valor.select_by_value(filtros['faixa_valor'])
-                print(f"Faixa de valor: {FAIXAS_VALOR[filtros['faixa_valor']]}")
+                logger.info(f"💰 Faixa de valor: {FAIXAS_VALOR[filtros['faixa_valor']]}")
                 time.sleep(1)
             except Exception as e:
-                print(f"Erro ao selecionar valor: {e}")
+                logger.warning(f"⚠️ Erro ao selecionar valor: {e}")
         
         # Clicar no segundo botão "Próximo"
-        print("Clicando no segundo botão 'Próximo'...")
+        logger.info("🔄 Clicando no segundo botão 'Próximo'...")
         try:
             btn_next2 = wait.until(EC.element_to_be_clickable((By.ID, "btn_next1")))
             btn_next2.click()
-            print("✅ Segundo botão Próximo clicado")
+            logger.info("✅ Segundo botão Próximo clicado")
         except Exception as e:
-            print(f"⚠️ Erro ao clicar no segundo botão: {e}")
-            print("🔄 Tentando com JavaScript...")
+            logger.warning(f"⚠️ Erro ao clicar no segundo botão: {e}")
+            logger.info("🔄 Tentando com JavaScript...")
             driver.execute_script("document.getElementById('btn_next1').click();")
-            print("✅ Segundo botão Próximo clicado via JavaScript")
+            logger.info("✅ Segundo botão Próximo clicado via JavaScript")
         
-        print("Aguardando carregamento dos resultados...")
+        logger.info("⏳ Aguardando carregamento dos resultados...")
         time.sleep(10)
         
         # Extrair imóveis de todas as páginas
@@ -641,14 +682,14 @@ def buscar_imoveis_com_filtros(filtros):
         tentativas_consecutivas = 0
         
         while pagina_atual <= max_paginas:
-            print(f"\n📄 Processando página {pagina_atual}...")
+            logger.info(f"📄 Processando página {pagina_atual}...")
             
             # Verificar se a página mudou
             url_atual = driver.current_url
             if url_atual == pagina_anterior:
                 tentativas_consecutivas += 1
                 if tentativas_consecutivas >= 2:
-                    print("⚠️ Página não mudou após tentativas. Parando navegação.")
+                    logger.warning("⚠️ Página não mudou após tentativas. Parando navegação.")
                     break
             else:
                 tentativas_consecutivas = 0
@@ -659,13 +700,13 @@ def buscar_imoveis_com_filtros(filtros):
             
             if imoveis_pagina:
                 todos_imoveis.extend(imoveis_pagina)
-                print(f"✅ {len(imoveis_pagina)} imóveis encontrados na página {pagina_atual}")
+                logger.info(f"✅ {len(imoveis_pagina)} imóveis encontrados na página {pagina_atual}")
             else:
-                print(f"⚠️ Nenhum imóvel encontrado na página {pagina_atual}")
+                logger.warning(f"⚠️ Nenhum imóvel encontrado na página {pagina_atual}")
                 # Se não há imóveis e não há botão próximo, parar
                 botao_proximo = verificar_proxima_pagina(driver)
                 if not botao_proximo:
-                    print("🏁 Nenhum imóvel encontrado e não há próxima página")
+                    logger.info("🏁 Nenhum imóvel encontrado e não há próxima página")
                     break
             
             # Verificar se há próxima página
@@ -708,18 +749,51 @@ def buscar_imoveis_com_filtros(filtros):
         
         # Salvar resultados
         if todos_imoveis:
-            df = pd.DataFrame(todos_imoveis)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            logger.info(f"🎉 Total de imóveis encontrados: {len(todos_imoveis)} em {pagina_atual} página(s)")
             
-            filename = f"imoveis_{filtros['nome_cidade'].lower()}_{timestamp}.csv"
-            df.to_csv(filename, index=False, encoding='utf-8-sig')
-            print(f"\n✅ Dados salvos em: {filename}")
-            
-            json_filename = f"imoveis_{filtros['nome_cidade'].lower()}_{timestamp}.json"
-            df.to_json(json_filename, orient='records', force_ascii=False, indent=2)
-            print(f"✅ Dados salvos em JSON: {json_filename}")
-            
-            print(f"\n🎉 Total de imóveis encontrados: {len(todos_imoveis)} em {pagina_atual} página(s)")
+            # Validar dados automaticamente
+            try:
+                logger.info("🔍 Iniciando validação automática dos dados...")
+                validator = DataValidator()
+                validation_results = validator.validate_imoveis_batch(todos_imoveis)
+                
+                # Salvar relatório de validação
+                validation_report_file = validator.save_validation_report(validation_results)
+                logger.info(f"📄 Relatório de validação salvo em: {validation_report_file}")
+                
+                # Usar apenas imóveis válidos para salvar
+                imoveis_validos = validation_results['valid_imoveis']
+                logger.info(f"✅ {len(imoveis_validos)} imóveis válidos após validação")
+                
+                if imoveis_validos:
+                    df = pd.DataFrame(imoveis_validos)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    
+                    filename = f"imoveis_{filtros['nome_cidade'].lower()}_{timestamp}.csv"
+                    df.to_csv(filename, index=False, encoding='utf-8-sig')
+                    logger.info(f"✅ Dados válidos salvos em: {filename}")
+                    
+                    json_filename = f"imoveis_{filtros['nome_cidade'].lower()}_{timestamp}.json"
+                    df.to_json(json_filename, orient='records', force_ascii=False, indent=2)
+                    logger.info(f"✅ Dados válidos salvos em JSON: {json_filename}")
+                else:
+                    logger.warning("⚠️ Nenhum imóvel válido encontrado após validação")
+                    
+            except Exception as e:
+                logger.error(f"❌ Erro na validação automática: {e}")
+                logger.info("🔄 Salvando dados sem validação...")
+                
+                # Fallback: salvar dados originais
+                df = pd.DataFrame(todos_imoveis)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                
+                filename = f"imoveis_{filtros['nome_cidade'].lower()}_{timestamp}.csv"
+                df.to_csv(filename, index=False, encoding='utf-8-sig')
+                logger.info(f"✅ Dados salvos em: {filename}")
+                
+                json_filename = f"imoveis_{filtros['nome_cidade'].lower()}_{timestamp}.json"
+                df.to_json(json_filename, orient='records', force_ascii=False, indent=2)
+                logger.info(f"✅ Dados salvos em JSON: {json_filename}")
             
             # Mostrar resumo por página
             print("\n📊 RESUMO POR PÁGINA:")

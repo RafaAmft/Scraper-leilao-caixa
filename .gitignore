@@ -20,7 +20,6 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -28,8 +27,6 @@ share/python-wheels/
 MANIFEST
 
 # PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
@@ -50,6 +47,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+cover/
 
 # Translations
 *.mo
@@ -72,6 +70,7 @@ instance/
 docs/_build/
 
 # PyBuilder
+.pybuilder/
 target/
 
 # Jupyter Notebook
@@ -85,13 +84,15 @@ ipython_config.py
 .python-version
 
 # pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
+Pipfile.lock
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# PEP 582
 __pypackages__/
 
 # Celery stuff
@@ -128,43 +129,83 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Scraper specific files
-*.csv
-*.json
-*.png
-*.txt
-!requirements.txt
-!README*.txt
-!configuracao_cidades.json
+# pytype static type analyzer
+.pytype/
 
-# Screenshots and data files
-screenshots/
-dados_imoveis/
-relatorios/
-arquivos_antigos/
+# Cython debug symbols
+cython_debug/
 
-# Temporary files
-*.tmp
-*.temp
-*.bak
-
-# IDE files
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# OS files
+*~
 .DS_Store
-Thumbs.db
 
-# Chrome driver
-chromedriver.exe
-chromedriver
+# Dados sensíveis
+*.env
+.env.*
+!.env.example
+config/gmail_config*.json
+*_config.json
+secrets/
+credentials/
+
+# Arquivos gerados pelo scraper
+*.csv
+*.json
+!configuracao_cidades.json
+!pyproject.json
+*.png
+*.html
+screenshot_*.png
+imoveis_*.csv
+imoveis_*.json
+relatorio_*.txt
+teste_relatorio_*.txt
+debug_*.html
+debug_*.png
 
 # Logs
 *.log
 logs/
+*.log.*
 
-# Email config (contains sensitive data)
-config/gmail_config_multiplos.json 
+# Temporários
+*.tmp
+*.temp
+temp/
+tmp/
+arquivos_temporarios/
+arquivos_antigos/
+
+# Backups
+*.bak
+*.backup
+*-backup.*
+backup/
+
+# Sistema operacional
+Thumbs.db
+.DS_Store
+*.swp
+*.swo
+
+# Egg info
+*.egg-info/
+
+# Diretórios de dados
+dados_imoveis/*.csv
+dados_imoveis/*.json
+!dados_imoveis/.gitkeep
+screenshots/*.png
+!screenshots/.gitkeep
+relatorios/*.txt
+!relatorios/.gitkeep
+resultados/*
+!resultados/.gitkeep
+
+# Arquivos específicos do projeto
+teste-simples-backup.yml
+scraper_output.log

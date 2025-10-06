@@ -18,6 +18,7 @@ import sys
 sys.path.append('src')
 
 from scraper_caixa.scraper import buscar_imoveis_com_filtros
+from config.logging_config import setup_logging, get_logger
 
 def carregar_configuracao():
     """Carrega configuração das cidades"""
@@ -131,23 +132,28 @@ Gerado automaticamente pelo Scraper Imóveis Caixa
 
 def buscar_todas_cidades():
     """Busca imóveis em todas as cidades configuradas"""
+    # Configurar sistema de logs
+    setup_logging()
+    logger = get_logger('scraper_automatico')
+    
     config = carregar_configuracao()
     if not config:
+        logger.error("❌ Falha ao carregar configuração!")
         return
     
     relatorio_completo = []
     total_imoveis = 0
     cidades_processadas = 0
     
-    print("🚀 Iniciando busca automática de imóveis...")
-    print(f"📅 Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    logger.info("🚀 Iniciando busca automática de imóveis...")
+    logger.info(f"📅 Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
     
     for estado, cidades in config['cidades'].items():
-        print(f"\n📍 Processando estado: {estado}")
+        logger.info(f"\n📍 Processando estado: {estado}")
         
         for codigo, nome in cidades.items():
             cidades_processadas += 1
-            print(f"\n🏙️ [{cidades_processadas}] Buscando em {nome}/{estado}...")
+            logger.info(f"\n🏙️ [{cidades_processadas}] Buscando em {nome}/{estado}...")
             
             # Configurar filtros (ajustar conforme necessário)
             filtros = {
@@ -164,6 +170,7 @@ def buscar_todas_cidades():
                 
                 if imoveis:
                     relatorio_cidade = f"\n🏙️ {nome}/{estado}: {len(imoveis)} imóveis encontrados"
+                    logger.info(f"✅ {nome}/{estado}: {len(imoveis)} imóveis encontrados")
                     
                     # Mostrar TODOS os imóveis com informações completas
                     for i, imovel in enumerate(imoveis, 1):
@@ -190,12 +197,13 @@ def buscar_todas_cidades():
                     total_imoveis += len(imoveis)
                 else:
                     relatorio_completo.append(f"\n🏙️ {nome}/{estado}: Nenhum imóvel encontrado")
+                    logger.warning(f"⚠️ {nome}/{estado}: Nenhum imóvel encontrado")
                 
                 time.sleep(5)  # Pausa maior entre buscas para evitar erros
                 
             except Exception as e:
                 relatorio_completo.append(f"\n❌ {nome}/{estado}: Erro - {e}")
-                print(f"❌ Erro em {nome}: {e}")
+                logger.error(f"❌ Erro em {nome}: {e}")
     
     # Contar imóveis por estado
     imoveis_por_estado = {}
@@ -254,16 +262,16 @@ Relatório gerado automaticamente
     with open(filename_detalhado, 'w', encoding='utf-8') as f:
         f.write(relatorio_detalhado)
     
-    print(f"\n✅ Relatório resumido salvo em '{filename_resumido}'")
-    print(f"✅ Relatório detalhado salvo em '{filename_detalhado}'")
-    print(f"📊 Total de imóveis encontrados: {total_imoveis}")
+    logger.info(f"✅ Relatório resumido salvo em '{filename_resumido}'")
+    logger.info(f"✅ Relatório detalhado salvo em '{filename_detalhado}'")
+    logger.info(f"📊 Total de imóveis encontrados: {total_imoveis}")
     
     # Mostrar relatório resumido
-    print(f"\n📧 RELATÓRIO RESUMIDO:")
-    print(f"   {relatorio_resumido}")
+    logger.info(f"📧 RELATÓRIO RESUMIDO:")
+    logger.info(f"   {relatorio_resumido}")
     
     # Enviar por email
-    print("\n📧 Preparando envio por email...")
+    logger.info("📧 Preparando envio por email...")
     enviar_email_relatorio(relatorio_resumido, relatorio_detalhado)
     
     return relatorio_resumido
