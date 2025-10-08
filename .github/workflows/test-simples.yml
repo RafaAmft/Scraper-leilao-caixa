@@ -31,7 +31,13 @@ jobs:
       - name: 📦 Instalar dependências
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f "$GITHUB_WORKSPACE/requirements.txt" ]; then
+            echo "📦 Instalando dependências de requirements.txt"
+            pip install -r "$GITHUB_WORKSPACE/requirements.txt"
+          else
+            echo "⚠️ requirements.txt não encontrado; instalando dependências mínimas"
+            pip install selenium pandas webdriver-manager beautifulsoup4 requests lxml || true
+          fi
           
       - name: 🖥️ Instalar Chrome
         run: |
