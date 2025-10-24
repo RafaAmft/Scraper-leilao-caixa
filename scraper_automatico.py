@@ -34,12 +34,25 @@ def carregar_config_gmail():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     config_dir = os.path.join(script_dir, 'config') if not script_dir.endswith('config') else script_dir
     config_file = os.path.join(config_dir, "gmail_config_multiplos.json")
+    
+    # Debug da configuração
+    print(f"🔍 DEBUG EMAIL CONFIG:")
+    print(f"  - script_dir: {script_dir}")
+    print(f"  - config_dir: {config_dir}")
+    print(f"  - config_file: {config_file}")
+    print(f"  - Arquivo existe: {os.path.exists(config_file)}")
+    
     if os.path.exists(config_file):
         try:
             with open(config_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except:
+                config = json.load(f)
+                print(f"✅ Configuração carregada: {config}")
+                return config
+        except Exception as e:
+            print(f"❌ Erro ao carregar configuração: {e}")
             pass
+    
+    print("⚠️ Retornando configuração padrão")
     return {
         'email_remetente': None,
         'email_destinatarios': []
