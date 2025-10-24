@@ -20,7 +20,7 @@ class DataValidator:
         
         # Padrões de validação
         self.patterns = {
-            'valor': r'R\$\s*\d+[.,]\d+',
+            'valor': r'R\$\s*\d{1,3}(?:\.\d{3})*(?:,\d{2})?$',
             'id_imovel': r'^\d+$',
             'cidade': r'^[A-Z\s]+$',
             'nome_imovel': r'^.+$'
