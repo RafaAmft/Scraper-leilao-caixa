@@ -126,8 +126,11 @@ def _enviar_via_oauth2(
     return emails_enviados
 
 
-def enviar_email_relatorio(relatorio: str, relatorio_detalhado: str) -> None:
-    """Envia relatório por email via Gmail API (OAuth2) ou fallback SMTP."""
+def enviar_email_relatorio(relatorio: str, relatorio_detalhado: str) -> int:
+    """Envia relatório por email via Gmail API (OAuth2) ou fallback SMTP.
+
+    Retorna a quantidade de e-mails enviados com sucesso.
+    """
     config_gmail = carregar_config_gmail()
     email_remetente = config_gmail.get("email_remetente")
     email_destinatarios = config_gmail.get("email_destinatarios", [])
@@ -135,7 +138,7 @@ def enviar_email_relatorio(relatorio: str, relatorio_detalhado: str) -> None:
     if not email_destinatarios:
         print("❌ Nenhum destinatário configurado!")
         print("💡 Execute 'python config/configurar_gmail_multiplos.py' para configurar")
-        return
+        return 0
 
     assunto = f"Relatório de Imóveis - {datetime.now().strftime('%d/%m/%Y')}"
     corpo = f"""
@@ -168,12 +171,12 @@ Gerado automaticamente pelo Scraper Imóveis Caixa
         if not email_remetente:
             print("❌ Email remetente não configurado!")
             print("💡 Execute 'python config/configurar_gmail_multiplos.py' para configurar")
-            return
+            return 0
         if not senha_app:
             print("❌ Nenhuma credencial de e-mail configurada!")
             print(f"💡 Opção recomendada (sem senha): salve o OAuth2 em '{DEFAULT_CREDENTIALS_PATH}'")
             print("💡 Ou defina a variável de ambiente GMAIL_APP_PASSWORD para usar SMTP.")
-            return
+            return 0
 
         print(f"📧 Enviando via SMTP para {len(email_destinatarios)} destinatário(s)...")
         max_tentativas = 3
@@ -219,6 +222,8 @@ Gerado automaticamente pelo Scraper Imóveis Caixa
         print("\n❌ Nenhum email foi enviado com sucesso")
         print("💡 O relatório foi salvo em arquivo local")
 
+    return emails_enviados
+
 
 def _formatar_imovel_relatorio(indice: int, imovel: dict) -> str:
     linhas = [f"\n  {indice}. {imovel['nome_imovel']}"]
@@ -257,7 +262,11 @@ def buscar_todas_cidades(
     caminho_csv: Optional[str] = None,
     enviar_email: bool = True,
 ):
-    """Baixa/lê o CSV oficial da Caixa e gera relatórios para todas as cidades configuradas."""
+    """Baixa/lê o CSV oficial da Caixa e gera relatórios para todas as cidades configuradas.
+
+    Retorna o relatório resumido, ou None em caso de falha (configuração, download ou
+    e-mail não enviado quando o envio foi solicitado).
+    """
     setup_logging()
     logger = get_logger("scraper_automatico")
 
@@ -352,7 +361,9 @@ Relatório gerado automaticamente
 
     if enviar_email:
         logger.info("📧 Preparando envio por email...")
-        enviar_email_relatorio(relatorio_resumido, relatorio_detalhado)
+        if enviar_email_relatorio(relatorio_resumido, relatorio_detalhado) == 0:
+            logger.error("❌ Relatórios gerados, mas nenhum e-mail foi enviado.")
+            return None
 
     return relatorio_resumido
 
@@ -381,7 +392,9 @@ def main():
         obter_servico_gmail(DEFAULT_CREDENTIALS_PATH, DEFAULT_TOKEN_PATH)
         print(f"✅ Autenticação OAuth2 concluída! Token salvo em '{DEFAULT_TOKEN_PATH}'.")
         return
-    buscar_todas_cidades(caminho_csv=args.csv, enviar_email=not args.sem_email)
+    resultado = buscar_todas_cidades(caminho_csv=args.csv, enviar_email=not args.sem_email)
+    if resultado is None:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
