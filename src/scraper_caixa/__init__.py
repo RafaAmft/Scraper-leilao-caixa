@@ -13,7 +13,18 @@ __email__ = "rafael.a.fontes@hotmail.com"
 
 # Imports principais
 from .config import ScraperConfig, ESTADOS_CIDADES, TIPOS_IMOVEL
-from .driver import configurar_chromedriver
+from .csv_loader import (
+    CAIXA_CSV_URL,
+    baixar_csv_caixa,
+    buscar_imoveis_csv,
+    carregar_csv_caixa,
+    filtrar_imoveis_csv,
+)
+from .gmail_oauth import enviar_email_oauth, obter_servico_gmail
+try:
+    from .driver import configurar_chromedriver
+except ImportError:
+    configurar_chromedriver = None  # type: ignore[assignment]
 from .exceptions import (
     ScraperError,
     ChromeDriverError,
@@ -46,4 +57,13 @@ __all__ = [
     "FiltrosBusca",
     "DadosImovel",
     "ResultadoBusca",
+    # CSV Loader
+    "CAIXA_CSV_URL",
+    "baixar_csv_caixa",
+    "carregar_csv_caixa",
+    "filtrar_imoveis_csv",
+    "buscar_imoveis_csv",
+    # Gmail OAuth2
+    "obter_servico_gmail",
+    "enviar_email_oauth",
 ]

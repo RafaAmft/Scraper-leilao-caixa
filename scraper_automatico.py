@@ -1,293 +1,388 @@
 #!/usr/bin/env python3
 """
 Script automático para buscar imóveis em todas as cidades configuradas
-Com suporte a múltiplos destinatários de email
+a partir da lista oficial CSV da Caixa (download-lista.asp),
+com geração de relatórios e envio por e-mail para múltiplos destinatários.
 """
 
-import time
-import socket
+import argparse
 from datetime import datetime
-import smtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import json
 import os
+import smtplib
+import socket
 import sys
+import time
+from typing import Optional
 
 # Adicionar o diretório src ao path
-sys.path.append('src')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
 
-from scraper_caixa.scraper import buscar_imoveis_com_filtros
-from config.logging_config import setup_logging, get_logger
+from config.logging_config import get_logger, setup_logging
+from scraper_caixa.csv_loader import buscar_imoveis_csv
+from scraper_caixa.gmail_oauth import (
+    DEFAULT_CREDENTIALS_PATH,
+    DEFAULT_TOKEN_PATH,
+    enviar_email_oauth,
+    obter_servico_gmail,
+)
 
-def carregar_configuracao():
-    """Carrega configuração das cidades"""
+
+def carregar_configuracao(caminho: str = "configuracao_cidades.json"):
+    """Carrega configuração das cidades."""
     try:
-        with open('configuracao_cidades.json', 'r', encoding='utf-8') as f:
+        with open(caminho, "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        print("❌ Arquivo de configuração não encontrado!")
+        print(f"❌ Arquivo de configuração '{caminho}' não encontrado!")
         return None
 
+
 def carregar_config_gmail():
-    """Carrega a configuração do Gmail com múltiplos destinatários"""
+    """Carrega a configuração do Gmail com múltiplos destinatários."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_dir = os.path.join(script_dir, 'config') if not script_dir.endswith('config') else script_dir
+    config_dir = (
+        os.path.join(script_dir, "config")
+        if not script_dir.endswith("config")
+        else script_dir
+    )
     config_file = os.path.join(config_dir, "gmail_config_multiplos.json")
-    
-    # Debug da configuração
-    print(f"🔍 DEBUG EMAIL CONFIG:")
-    print(f"  - script_dir: {script_dir}")
-    print(f"  - config_dir: {config_dir}")
-    print(f"  - config_file: {config_file}")
-    print(f"  - Arquivo existe: {os.path.exists(config_file)}")
-    
+
     if os.path.exists(config_file):
         try:
-            with open(config_file, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-                print(f"✅ Configuração carregada: {config}")
-                return config
+            with open(config_file, "r", encoding="utf-8") as f:
+                return json.load(f)
         except Exception as e:
-            print(f"❌ Erro ao carregar configuração: {e}")
-            pass
-    
-    print("⚠️ Retornando configuração padrão")
-    return {
-        'email_remetente': None,
-        'email_destinatarios': []
-    }
+            print(f"❌ Erro ao carregar configuração de e-mail: {e}")
 
-def enviar_email_relatorio(relatorio, relatorio_detalhado):
-    """Envia relatório por email usando Gmail com múltiplos destinatários"""
-    SENHA_APP = "hfvk igne yago hwou"  # Senha de app fornecida
-    config_gmail = carregar_config_gmail()
-    EMAIL_REMETENTE = config_gmail.get('email_remetente')
-    EMAIL_DESTINATARIOS = config_gmail.get('email_destinatarios', [])
-    
-    if not EMAIL_REMETENTE:
-        print("❌ Email remetente não configurado!")
-        print("💡 Execute 'python config/configurar_gmail_multiplos.py' para configurar")
-        return
-    
-    if not EMAIL_DESTINATARIOS:
-        print("❌ Nenhum destinatário configurado!")
-        print("💡 Execute 'python config/configurar_gmail_multiplos.py' para configurar")
-        return
-    
-    print(f"📧 Enviando para {len(EMAIL_DESTINATARIOS)} destinatário(s)...")
-    
-    # Enviar para cada destinatário
-    emails_enviados = 0
-    for i, email_destinatario in enumerate(EMAIL_DESTINATARIOS, 1):
-        print(f"\n📧 [{i}/{len(EMAIL_DESTINATARIOS)}] Enviando para: {email_destinatario}")
-        
-        # Tentar envio com retry
-        max_tentativas = 3
-        for tentativa in range(max_tentativas):
-            try:
-                print(f"   Tentativa {tentativa + 1}/{max_tentativas}...")
-                
-                # Criar mensagem
-                msg = MIMEMultipart()
-                msg['From'] = EMAIL_REMETENTE
-                msg['To'] = email_destinatario
-                msg['Subject'] = f"Relatório de Imóveis - {datetime.now().strftime('%d/%m/%Y')}"
-                corpo = f"""
+    return {"email_remetente": None, "email_destinatarios": []}
+
+
+def _obter_senha_app(config_gmail: dict) -> Optional[str]:
+    """Obtém a senha de app do Gmail via variável de ambiente ou configuração local."""
+    return os.getenv("GMAIL_APP_PASSWORD") or config_gmail.get("senha_app")
+
+
+def _criar_mensagem_email(
+    remetente: str,
+    destinatario: str,
+    relatorio: str,
+    relatorio_detalhado: str,
+    timestamp_anexo: str,
+) -> MIMEMultipart:
+    msg = MIMEMultipart()
+    msg["From"] = remetente
+    msg["To"] = destinatario
+    msg["Subject"] = f"Relatório de Imóveis - {datetime.now().strftime('%d/%m/%Y')}"
+
+    corpo = f"""
 {relatorio}
 
 ---
 Relatório detalhado anexado.
 Gerado automaticamente pelo Scraper Imóveis Caixa
-                """
-                msg.attach(MIMEText(corpo, 'plain', 'utf-8'))
-                relatorio_anexo = MIMEText(relatorio_detalhado, 'plain', 'utf-8')
-                relatorio_anexo.add_header('Content-Disposition', 'attachment', filename=f'relatorio_detalhado_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt')
-                msg.attach(relatorio_anexo)
-                
-                # Conectar com timeout maior
-                server = smtplib.SMTP('smtp.gmail.com', 587, timeout=60)
-                server.starttls()
-                server.login(EMAIL_REMETENTE, SENHA_APP)
-                server.send_message(msg)
-                server.quit()
-                print(f"   ✅ Email enviado com sucesso para {email_destinatario}")
-                emails_enviados += 1
-                break  # Sucesso, sair do loop de tentativas
-                
+"""
+    msg.attach(MIMEText(corpo, "plain", "utf-8"))
+
+    relatorio_anexo = MIMEText(relatorio_detalhado, "plain", "utf-8")
+    relatorio_anexo.add_header(
+        "Content-Disposition",
+        "attachment",
+        filename=f"relatorio_detalhado_{timestamp_anexo}.txt",
+    )
+    msg.attach(relatorio_anexo)
+    return msg
+
+
+def _enviar_via_oauth2(
+    email_remetente: Optional[str],
+    email_destinatarios: list,
+    assunto: str,
+    corpo: str,
+    nome_anexo: str,
+    relatorio_detalhado: str,
+) -> int:
+    """Envia e-mails usando a Gmail API via OAuth2 (sem senha de app)."""
+    service = obter_servico_gmail(DEFAULT_CREDENTIALS_PATH, DEFAULT_TOKEN_PATH)
+    emails_enviados = 0
+    for i, destinatario in enumerate(email_destinatarios, 1):
+        print(f"📧 [{i}/{len(email_destinatarios)}] Enviando via Gmail API para: {destinatario}")
+        try:
+            enviar_email_oauth(
+                service=service,
+                destinatario=destinatario,
+                assunto=assunto,
+                corpo=corpo,
+                remetente=email_remetente,
+                nome_anexo=nome_anexo,
+                conteudo_anexo=relatorio_detalhado,
+            )
+            print(f"   ✅ Email enviado com sucesso para {destinatario}")
+            emails_enviados += 1
+        except Exception as e:
+            print(f"   ❌ Erro ao enviar para {destinatario}: {e}")
+    return emails_enviados
+
+
+def enviar_email_relatorio(relatorio: str, relatorio_detalhado: str) -> None:
+    """Envia relatório por email via Gmail API (OAuth2) ou fallback SMTP."""
+    config_gmail = carregar_config_gmail()
+    email_remetente = config_gmail.get("email_remetente")
+    email_destinatarios = config_gmail.get("email_destinatarios", [])
+
+    if not email_destinatarios:
+        print("❌ Nenhum destinatário configurado!")
+        print("💡 Execute 'python config/configurar_gmail_multiplos.py' para configurar")
+        return
+
+    assunto = f"Relatório de Imóveis - {datetime.now().strftime('%d/%m/%Y')}"
+    corpo = f"""
+{relatorio}
+
+---
+Relatório detalhado anexado.
+Gerado automaticamente pelo Scraper Imóveis Caixa
+"""
+    timestamp_anexo = datetime.now().strftime("%Y%m%d_%H%M%S")
+    nome_anexo = f"relatorio_detalhado_{timestamp_anexo}.txt"
+
+    usa_oauth2 = DEFAULT_CREDENTIALS_PATH.exists() or DEFAULT_TOKEN_PATH.exists()
+    if usa_oauth2:
+        print(f"🔐 Autenticando via Gmail API (OAuth2) para {len(email_destinatarios)} destinatário(s)...")
+        try:
+            emails_enviados = _enviar_via_oauth2(
+                email_remetente,
+                email_destinatarios,
+                assunto,
+                corpo,
+                nome_anexo,
+                relatorio_detalhado,
+            )
+        except Exception as e:
+            print(f"❌ Erro na autenticação/envio via Gmail API: {e}")
+            emails_enviados = 0
+    else:
+        senha_app = _obter_senha_app(config_gmail)
+        if not email_remetente:
+            print("❌ Email remetente não configurado!")
+            print("💡 Execute 'python config/configurar_gmail_multiplos.py' para configurar")
+            return
+        if not senha_app:
+            print("❌ Nenhuma credencial de e-mail configurada!")
+            print(f"💡 Opção recomendada (sem senha): salve o OAuth2 em '{DEFAULT_CREDENTIALS_PATH}'")
+            print("💡 Ou defina a variável de ambiente GMAIL_APP_PASSWORD para usar SMTP.")
+            return
+
+        print(f"📧 Enviando via SMTP para {len(email_destinatarios)} destinatário(s)...")
+        max_tentativas = 3
+        emails_enviados = 0
+
+        for tentativa in range(max_tentativas):
+            try:
+                with smtplib.SMTP("smtp.gmail.com", 587, timeout=60) as server:
+                    server.starttls()
+                    server.login(email_remetente, senha_app)
+
+                    for i, destinatario in enumerate(email_destinatarios, 1):
+                        print(f"📧 [{i}/{len(email_destinatarios)}] Enviando para: {destinatario}")
+                        try:
+                            msg = _criar_mensagem_email(
+                                email_remetente,
+                                destinatario,
+                                relatorio,
+                                relatorio_detalhado,
+                                timestamp_anexo,
+                            )
+                            server.send_message(msg)
+                            print(f"   ✅ Email enviado com sucesso para {destinatario}")
+                            emails_enviados += 1
+                        except smtplib.SMTPRecipientsRefused as e:
+                            print(f"   ❌ Destinatário recusado ({destinatario}): {e}")
+                break
             except smtplib.SMTPAuthenticationError as e:
                 print(f"   ❌ Erro de autenticação: {e}")
-                break  # Não tentar novamente para erro de auth
-            except smtplib.SMTPRecipientsRefused as e:
-                print(f"   ❌ Destinatário recusado: {e}")
-                break  # Não tentar novamente para erro de destinatário
+                break
             except (socket.timeout, socket.gaierror, ConnectionError) as e:
-                print(f"   ❌ Erro de conectividade (tentativa {tentativa + 1}): {e}")
+                print(f"   ❌ Erro de conectividade (tentativa {tentativa + 1}/{max_tentativas}): {e}")
                 if tentativa < max_tentativas - 1:
-                    print("   ⏳ Aguardando 10 segundos antes da próxima tentativa...")
                     time.sleep(10)
-                else:
-                    print(f"   ❌ Falha ao enviar para {email_destinatario}")
             except Exception as e:
-                print(f"   ❌ Erro inesperado (tentativa {tentativa + 1}): {e}")
+                print(f"   ❌ Erro inesperado (tentativa {tentativa + 1}/{max_tentativas}): {e}")
                 if tentativa < max_tentativas - 1:
-                    print("   ⏳ Aguardando 5 segundos antes da próxima tentativa...")
                     time.sleep(5)
-                else:
-                    print(f"   ❌ Falha ao enviar para {email_destinatario}")
-    
+
     if emails_enviados > 0:
-        print(f"\n✅ {emails_enviados}/{len(EMAIL_DESTINATARIOS)} emails enviados com sucesso!")
+        print(f"\n✅ {emails_enviados}/{len(email_destinatarios)} emails enviados com sucesso!")
     else:
         print("\n❌ Nenhum email foi enviado com sucesso")
         print("💡 O relatório foi salvo em arquivo local")
-        print("💡 Verifique se o email remetente, destinatários e senha de app estão corretos")
 
-def buscar_todas_cidades():
-    """Busca imóveis em todas as cidades configuradas"""
-    # Configurar sistema de logs
+
+def _formatar_imovel_relatorio(indice: int, imovel: dict) -> str:
+    linhas = [f"\n  {indice}. {imovel['nome_imovel']}"]
+
+    if imovel.get("quartos"):
+        linhas.append(f"     🛏️ {imovel['quartos']} quarto(s)")
+
+    valor_info = f"     💰 R$ {imovel['valor']}"
+    if imovel.get("valor_avaliacao"):
+        valor_info += f" (Avaliação: R$ {imovel['valor_avaliacao']}"
+        if imovel.get("desconto"):
+            valor_info += f" | Desconto: {imovel['desconto']}%"
+        valor_info += ")"
+    linhas.append(valor_info)
+
+    if imovel.get("modalidade_venda"):
+        modalidade_info = f"     🏷️ {imovel['modalidade_venda']}"
+        if imovel.get("financiamento"):
+            modalidade_info += f" | Financiamento: {imovel['financiamento']}"
+        linhas.append(modalidade_info)
+
+    if imovel.get("endereco"):
+        linhas.append(f"     📍 {imovel['endereco']}")
+
+    if imovel.get("link_direto"):
+        linhas.append(f"     🔗 {imovel['link_direto']}")
+    elif imovel.get("id_imovel"):
+        linhas.append(
+            f"     🔗 https://venda-imoveis.caixa.gov.br/sistema/detalhe-imovel.asp?hdnimovel={imovel['id_imovel']}"
+        )
+
+    return "\n".join(linhas)
+
+
+def buscar_todas_cidades(
+    caminho_csv: Optional[str] = None,
+    enviar_email: bool = True,
+):
+    """Baixa/lê o CSV oficial da Caixa e gera relatórios para todas as cidades configuradas."""
     setup_logging()
-    logger = get_logger('scraper_automatico')
-    
+    logger = get_logger("scraper_automatico")
+
     config = carregar_configuracao()
     if not config:
         logger.error("❌ Falha ao carregar configuração!")
-        return
-    
+        return None
+
+    logger.info("🚀 Iniciando busca de imóveis via CSV oficial da Caixa...")
+    logger.info(f"📅 Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+
+    try:
+        resultados, data_geracao = buscar_imoveis_csv(
+            config_cidades=config,
+            caminho_csv=caminho_csv,
+            baixar_se_necessario=caminho_csv is None,
+        )
+    except Exception as e:
+        logger.error(f"❌ Erro ao processar CSV da Caixa: {e}")
+        return None
+
+    if data_geracao:
+        logger.info(f"🗓️ Data de geração da lista Caixa: {data_geracao}")
+
     relatorio_completo = []
+    imoveis_por_estado = {}
     total_imoveis = 0
     cidades_processadas = 0
-    
-    logger.info("🚀 Iniciando busca automática de imóveis...")
-    logger.info(f"📅 Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-    
-    for estado, cidades in config['cidades'].items():
-        logger.info(f"\n📍 Processando estado: {estado}")
-        
-        for codigo, nome in cidades.items():
-            cidades_processadas += 1
-            logger.info(f"\n🏙️ [{cidades_processadas}] Buscando em {nome}/{estado}...")
-            
-            # Configurar filtros (ajustar conforme necessário)
-            filtros = {
-                'estado': estado,
-                'codigo_cidade': codigo,
-                'nome_cidade': nome,
-                'tipo_imovel': '4',  # Indiferente
-                'faixa_valor': None,  # Indiferente
-                'quartos': None       # Indiferente
-            }
-            
-            try:
-                imoveis = buscar_imoveis_com_filtros(filtros)
-                
-                if imoveis:
-                    relatorio_cidade = f"\n🏙️ {nome}/{estado}: {len(imoveis)} imóveis encontrados"
-                    logger.info(f"✅ {nome}/{estado}: {len(imoveis)} imóveis encontrados")
-                    
-                    # Mostrar TODOS os imóveis com informações completas
-                    for i, imovel in enumerate(imoveis, 1):
-                        relatorio_cidade += f"\n\n  {i}. {imovel['nome_imovel']}"
-                        
-                        # Adicionar quartos se disponível
-                        if imovel.get('quartos'):
-                            relatorio_cidade += f"\n     🛏️ {imovel['quartos']} quarto(s)"
-                        
-                        # Adicionar valor
-                        relatorio_cidade += f"\n     💰 R$ {imovel['valor']}"
-                        
-                        # Adicionar endereço se disponível
-                        if imovel.get('endereco'):
-                            relatorio_cidade += f"\n     📍 {imovel['endereco']}"
-                        
-                        # Adicionar link direto
-                        if imovel.get('link_direto'):
-                            relatorio_cidade += f"\n     🔗 {imovel['link_direto']}"
-                        elif imovel.get('id_imovel'):
-                            relatorio_cidade += f"\n     🔗 https://venda-imoveis.caixa.gov.br/sistema/detalhe-imovel.asp?hdnOrigem=index&txtImovel={imovel['id_imovel']}"
-                    
-                    relatorio_completo.append(relatorio_cidade)
-                    total_imoveis += len(imoveis)
-                else:
-                    relatorio_completo.append(f"\n🏙️ {nome}/{estado}: Nenhum imóvel encontrado")
-                    logger.warning(f"⚠️ {nome}/{estado}: Nenhum imóvel encontrado")
-                
-                time.sleep(5)  # Pausa maior entre buscas para evitar erros
-                
-            except Exception as e:
-                relatorio_completo.append(f"\n❌ {nome}/{estado}: Erro - {e}")
-                logger.error(f"❌ Erro em {nome}: {e}")
-    
-    # Contar imóveis por estado
-    imoveis_por_estado = {}
-    for estado, cidades in config['cidades'].items():
+
+    for estado, cidades in config["cidades"].items():
         imoveis_por_estado[estado] = 0
-        for codigo, nome in cidades.items():
-            # Contar imóveis encontrados para esta cidade
-            for relatorio_cidade in relatorio_completo:
-                if f"{nome}/{estado}:" in relatorio_cidade:
-                    # Extrair número de imóveis do relatório
-                    if "imóveis encontrados" in relatorio_cidade:
-                        try:
-                            num_imoveis = int(relatorio_cidade.split(":")[1].split()[0])
-                            imoveis_por_estado[estado] += num_imoveis
-                        except:
-                            pass
-    
-    # Gerar relatório resumido (formato solicitado)
+        logger.info(f"\n📍 Processando estado: {estado}")
+
+        for _, nome in cidades.items():
+            cidades_processadas += 1
+            imoveis = resultados.get(estado, {}).get(nome, [])
+
+            if imoveis:
+                relatorio_cidade = f"\n🏙️ {nome}/{estado}: {len(imoveis)} imóveis encontrados"
+                logger.info(f"✅ {nome}/{estado}: {len(imoveis)} imóveis encontrados")
+
+                for i, imovel in enumerate(imoveis, 1):
+                    relatorio_cidade += "\n" + _formatar_imovel_relatorio(i, imovel)
+
+                relatorio_completo.append(relatorio_cidade)
+                total_imoveis += len(imoveis)
+                imoveis_por_estado[estado] += len(imoveis)
+            else:
+                relatorio_completo.append(f"\n🏙️ {nome}/{estado}: Nenhum imóvel encontrado")
+                logger.warning(f"⚠️ {nome}/{estado}: Nenhum imóvel encontrado")
+
     data_atual = datetime.now().strftime("%d/%m/%Y")
     relatorio_resumido = f"Olá, hoje é dia {data_atual}, foram localizados"
-    
-    # Adicionar contagem por estado
-    estados_com_imoveis = []
-    for estado, quantidade in imoveis_por_estado.items():
-        if quantidade > 0:
-            estados_com_imoveis.append(f"{quantidade} imóveis em {estado}")
-    
+
+    estados_com_imoveis = [
+        f"{quantidade} imóveis em {estado}"
+        for estado, quantidade in imoveis_por_estado.items()
+        if quantidade > 0
+    ]
+
     if estados_com_imoveis:
         relatorio_resumido += " " + ", ".join(estados_com_imoveis) + "."
     else:
         relatorio_resumido += " nenhum imóvel nas cidades monitoradas."
-    
-    # Relatório detalhado completo
+
+    info_lista = f"Lista Caixa gerada em: {data_geracao}\n" if data_geracao else ""
     relatorio_detalhado = f"""
 📊 RELATÓRIO DETALHADO DE IMÓVEIS - CAIXA
-Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}
-Cidades processadas: {cidades_processadas}
+Data da execução: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+{info_lista}Cidades processadas: {cidades_processadas}
 Total de imóveis encontrados: {total_imoveis}
 
 {''.join(relatorio_completo)}
 
 ---
 Relatório gerado automaticamente
-    """
-    
-    # Salvar relatórios em arquivos
+"""
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    # Salvar relatório resumido
-    filename_resumido = f'relatorio_resumido_{timestamp}.txt'
-    with open(filename_resumido, 'w', encoding='utf-8') as f:
+    filename_resumido = f"relatorio_resumido_{timestamp}.txt"
+    with open(filename_resumido, "w", encoding="utf-8") as f:
         f.write(relatorio_resumido)
-    
-    # Salvar relatório detalhado
-    filename_detalhado = f'relatorio_detalhado_{timestamp}.txt'
-    with open(filename_detalhado, 'w', encoding='utf-8') as f:
+
+    filename_detalhado = f"relatorio_detalhado_{timestamp}.txt"
+    with open(filename_detalhado, "w", encoding="utf-8") as f:
         f.write(relatorio_detalhado)
-    
+
     logger.info(f"✅ Relatório resumido salvo em '{filename_resumido}'")
     logger.info(f"✅ Relatório detalhado salvo em '{filename_detalhado}'")
     logger.info(f"📊 Total de imóveis encontrados: {total_imoveis}")
-    
-    # Mostrar relatório resumido
-    logger.info(f"📧 RELATÓRIO RESUMIDO:")
-    logger.info(f"   {relatorio_resumido}")
-    
-    # Enviar por email
-    logger.info("📧 Preparando envio por email...")
-    enviar_email_relatorio(relatorio_resumido, relatorio_detalhado)
-    
+    logger.info(f"📧 RELATÓRIO RESUMIDO:\n   {relatorio_resumido}")
+
+    if enviar_email:
+        logger.info("📧 Preparando envio por email...")
+        enviar_email_relatorio(relatorio_resumido, relatorio_detalhado)
+
     return relatorio_resumido
 
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Busca imóveis da Caixa a partir do CSV oficial."
+    )
+    parser.add_argument(
+        "--csv",
+        help="Caminho para um arquivo Lista_imoveis_geral.csv local (pula o download).",
+        default=None,
+    )
+    parser.add_argument(
+        "--sem-email",
+        action="store_true",
+        help="Gera os relatórios locais sem enviar e-mail.",
+    )
+    parser.add_argument(
+        "--auth-gmail",
+        action="store_true",
+        help="Executa apenas a autenticação OAuth2 do Gmail para gerar config/gmail_token.json.",
+    )
+    args = parser.parse_args()
+    if args.auth_gmail:
+        obter_servico_gmail(DEFAULT_CREDENTIALS_PATH, DEFAULT_TOKEN_PATH)
+        print(f"✅ Autenticação OAuth2 concluída! Token salvo em '{DEFAULT_TOKEN_PATH}'.")
+        return
+    buscar_todas_cidades(caminho_csv=args.csv, enviar_email=not args.sem_email)
+
+
 if __name__ == "__main__":
-    buscar_todas_cidades() 
+    main()
