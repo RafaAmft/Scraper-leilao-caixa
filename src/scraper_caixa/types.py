@@ -25,9 +25,15 @@ class DadosImovel(TypedDict, total=False):
     id_imovel: str
     nome_imovel: str
     endereco: str
+    bairro: Optional[str]
     cidade: str
     estado: str
     valor: str
+    valor_avaliacao: Optional[str]
+    desconto: Optional[str]
+    financiamento: Optional[str]
+    modalidade_venda: Optional[str]
+    descricao: Optional[str]
     quartos: Optional[str]
     link_direto: Optional[str]
     pagina: int
