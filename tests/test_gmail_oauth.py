@@ -57,7 +57,8 @@ def test_enviar_email_oauth_chama_api():
     assert b"anexo.txt" in raw_bytes
 
 
-def test_obter_servico_gmail_sem_credenciais_levanta_erro(tmp_path: Path):
+def test_obter_servico_gmail_sem_credenciais_levanta_erro(tmp_path: Path, monkeypatch):
+    monkeypatch.delenv("CI", raising=False)
     with pytest.raises(FileNotFoundError):
         obter_servico_gmail(
             credentials_path=tmp_path / "nao_existe.json",
@@ -82,3 +83,30 @@ def test_obter_servico_gmail_com_token_valido(tmp_path: Path):
 
     assert service == "gmail_service"
     mock_build.assert_called_once_with("gmail", "v1", credentials=mock_creds)
+
+
+def test_obter_servico_gmail_em_ci_sem_token_nao_abre_navegador(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("CI", "true")
+    cred_file = tmp_path / "gmail_credentials.json"
+    cred_file.write_text("{}", encoding="utf-8")
+
+    with patch("google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file") as mock_flow:
+        with pytest.raises(RuntimeError, match="GMAIL_TOKEN_JSON"):
+            obter_servico_gmail(credentials_path=cred_file, token_path=tmp_path / "token.json")
+
+    mock_flow.assert_not_called()
+
+
+def test_obter_servico_gmail_falha_refresh_gera_erro_claro(tmp_path: Path):
+    token_file = tmp_path / "gmail_token.json"
+    token_file.write_text("{}", encoding="utf-8")
+
+    mock_creds = MagicMock()
+    mock_creds.valid = False
+    mock_creds.expired = True
+    mock_creds.refresh_token = "refresh"
+    mock_creds.refresh.side_effect = Exception("invalid_grant")
+
+    with patch("google.oauth2.credentials.Credentials.from_authorized_user_file", return_value=mock_creds):
+        with pytest.raises(RuntimeError, match="--auth-gmail"):
+            obter_servico_gmail(credentials_path=tmp_path / "c.json", token_path=token_file)

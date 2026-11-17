@@ -1,6 +1,7 @@
 """Módulo para envio de e-mails via Gmail API usando OAuth2 (sem senha de app)."""
 
 import base64
+import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
@@ -41,8 +42,22 @@ def obter_servico_gmail(
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+            try:
+                creds.refresh(Request())
+            except Exception as exc:
+                raise RuntimeError(
+                    "Não foi possível renovar o token OAuth2 do Gmail (token expirado ou revogado). "
+                    "Rode 'python scraper_automatico.py --auth-gmail' localmente e atualize "
+                    "o token salvo (e o secret GMAIL_TOKEN_JSON, se usar GitHub Actions)."
+                ) from exc
         else:
+            if os.getenv("CI"):
+                raise RuntimeError(
+                    "Token OAuth2 do Gmail ausente ou inválido em ambiente de CI, onde não há "
+                    "navegador para autorizar. Gere o token localmente com "
+                    "'python scraper_automatico.py --auth-gmail' e salve o conteúdo de "
+                    f"'{token_file}' no secret GMAIL_TOKEN_JSON."
+                )
             if not cred_file.exists():
                 raise FileNotFoundError(
                     f"Arquivo de credenciais OAuth2 não encontrado em '{cred_file}'. "
