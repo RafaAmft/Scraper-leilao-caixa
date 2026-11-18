@@ -22,7 +22,9 @@ from typing import List, Optional, Union
 from .logger import get_logger
 
 DEFAULT_BRANCH = "gh-pages"
-_IDENTIDADE_PADRAO = ("Scraper Leilao Caixa", "scraper-leilao-caixa@users.noreply.github.com")
+# Identidade fixa do commit de publicação: não expõe o e-mail do usuário e evita o
+# bloqueio de privacidade de e-mail do GitHub (GH007).
+_IDENTIDADE_PUBLICACAO = ("Scraper Leilao Caixa", "scraper-leilao-caixa@users.noreply.github.com")
 _GITHUB_RE = re.compile(r"github\.com[:/](?P<dono>[^/]+)/(?P<repo>[^/]+?)(?:\.git)?/?$", re.IGNORECASE)
 
 
@@ -60,9 +62,36 @@ def _git(args: List[str], cwd: Union[Path, str], timeout: int = 120) -> str:
     except subprocess.TimeoutExpired as exc:
         raise PublicacaoError(f"git {args[0]} demorou mais de {timeout}s.") from exc
     if resultado.returncode != 0:
-        detalhe = (resultado.stderr or resultado.stdout).strip().splitlines()
-        raise PublicacaoError(f"git {args[0]} falhou: {detalhe[-1] if detalhe else 'erro desconhecido'}")
+        raise PublicacaoError(_mensagem_erro(args[0], resultado.stderr or resultado.stdout))
     return resultado.stdout.strip()
+
+
+# (trecho procurado na saída do git, dica para o usuário)
+_DICAS_ERRO = (
+    ("email privacy", "O GitHub bloqueou o push por privacidade de e-mail (GH007). "
+                      "Veja Settings > Emails > 'Block command line pushes that expose my email'."),
+    ("gh013", "Uma regra (ruleset) do repositório bloqueou o push. Veja Settings > Rules > Rulesets."),
+    ("protected branch", "O branch está protegido. Veja Settings > Branches."),
+    ("could not read username", "Sem credencial do GitHub para push. Faça um 'git push' manual uma vez "
+                                "para salvar a credencial no Gerenciador de Credenciais do Windows."),
+    ("authentication failed", "Credencial do GitHub inválida ou expirada. Faça um 'git push' manual para renová-la."),
+    ("permission to", "Esta conta não tem permissão de push neste repositório."),
+    ("403", "O GitHub recusou o acesso (403): verifique a credencial e a permissão de push."),
+)
+
+
+def _mensagem_erro(comando: str, saida: str) -> str:
+    """Resume a saída de erro do git mantendo as linhas que explicam o motivo."""
+    linhas = [linha.strip() for linha in (saida or "").strip().splitlines() if linha.strip()]
+    relevantes = [
+        linha for linha in linhas
+        if linha.lower().startswith(("remote:", "!", "error:", "fatal:", "hint:"))
+        and linha.lower().strip() not in ("remote:",)
+    ] or linhas
+    resumo = " | ".join(relevantes[-8:]) if relevantes else "erro desconhecido"
+    texto = (saida or "").lower()
+    dica = next((d for trecho, d in _DICAS_ERRO if trecho in texto), None)
+    return f"git {comando} falhou: {resumo}" + (f"\n    Dica: {dica}" if dica else "")
 
 
 def _remover_pasta(pasta: Path) -> None:
@@ -79,13 +108,6 @@ def _remover_pasta(pasta: Path) -> None:
         shutil.rmtree(pasta, onexc=liberar)
     else:
         shutil.rmtree(pasta, onerror=liberar)
-
-
-def _config(repo_dir: Path, chave: str) -> Optional[str]:
-    try:
-        return _git(["config", "--get", chave], repo_dir) or None
-    except PublicacaoError:
-        return None
 
 
 def publicar_painel_github_pages(
@@ -106,8 +128,7 @@ def publicar_painel_github_pages(
         raise PublicacaoError(f"Painel não encontrado: {painel}")
 
     remote_url = _git(["remote", "get-url", remote], repo_dir)
-    nome = _config(repo_dir, "user.name") or _IDENTIDADE_PADRAO[0]
-    email = _config(repo_dir, "user.email") or _IDENTIDADE_PADRAO[1]
+    nome, email = _IDENTIDADE_PUBLICACAO
 
     pasta = Path(tempfile.mkdtemp(prefix="publicacao_painel_"))
     try:
