@@ -70,3 +70,38 @@ def test_publicar_sem_painel_ou_sem_remoto_falha(repos, tmp_path: Path):
     painel.write_text("x", encoding="utf-8")
     with pytest.raises(PublicacaoError, match="remote"):
         publicar_painel_github_pages(painel, repo_dir=sem_remoto)
+
+
+def test_commit_de_publicacao_usa_identidade_noreply(repos, tmp_path: Path):
+    local, remoto = repos
+    _git("config", "user.email", "pessoa@exemplo.com", cwd=local)
+    painel = tmp_path / "p.html"
+    painel.write_text("<html></html>", encoding="utf-8")
+
+    publicar_painel_github_pages(painel, repo_dir=local)
+
+    autor = _git("log", "-1", "--format=%an <%ae>", "gh-pages", cwd=remoto)
+    assert autor == "Scraper Leilao Caixa <scraper-leilao-caixa@users.noreply.github.com>"
+
+
+def test_push_recusado_mostra_motivo_do_remoto_e_dica(repos, tmp_path: Path):
+    local, remoto = repos
+    hook = remoto / "hooks" / "pre-receive"
+    hook.write_text(
+        "#!/bin/sh\n"
+        "echo 'GH007: Your push would publish a private email address.' >&2\n"
+        "echo 'push declined due to email privacy restrictions' >&2\n"
+        "exit 1\n",
+        encoding="utf-8",
+    )
+    hook.chmod(0o755)
+    painel = tmp_path / "p.html"
+    painel.write_text("<html></html>", encoding="utf-8")
+
+    with pytest.raises(PublicacaoError) as erro:
+        publicar_painel_github_pages(painel, repo_dir=local)
+
+    mensagem = str(erro.value)
+    assert "GH007" in mensagem
+    assert "failed to push some refs" in mensagem
+    assert "Dica:" in mensagem and "privacidade de e-mail" in mensagem
