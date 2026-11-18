@@ -41,6 +41,38 @@ _COLUMN_MAP = {
     "link de acesso": "link_direto",
 }
 
+DIAGNOSTICO_HTML_PATH = Path("dados_imoveis") / "resposta_bloqueio.html"
+
+# Cabeçalhos de resposta úteis para identificar CDN/WAF/anti-bot
+_HEADERS_DIAGNOSTICO = (
+    "Server",
+    "Content-Type",
+    "Content-Length",
+    "Location",
+    "Set-Cookie",
+    "CF-RAY",
+    "CF-Cache-Status",
+    "CF-Mitigated",
+    "X-Iinfo",
+    "X-CDN",
+    "X-Akamai-Transformed",
+    "Akamai-GRN",
+    "X-Sucuri-ID",
+    "Via",
+)
+
+# (nome da proteção, marcadores procurados em cabeçalhos/corpo, em minúsculas)
+_ASSINATURAS_PROTECAO = (
+    ("Cloudflare", ("cf-ray", "cloudflare", "cf-chl", "challenges.cloudflare.com", "__cf_bm")),
+    ("Radware Bot Manager", ("perfdrive", "radware", "shieldsquare")),
+    ("Imperva/Incapsula", ("incapsula", "_incap_", "visid_incap", "x-iinfo")),
+    ("Akamai", ("akamai", "_abck", "bm_sz")),
+    ("F5/Shape", ("f5_cspm", "ts01", "bigipserver")),
+    ("Sucuri", ("sucuri",)),
+    ("hCaptcha", ("hcaptcha",)),
+    ("reCAPTCHA", ("recaptcha", "google.com/recaptcha")),
+)
+
 _QUARTOS_RE = re.compile(r"(\d+)\s*qto\(s\)", re.IGNORECASE)
 _DATA_GERACAO_RE = re.compile(r"Data de gera.{1,3}o:;\s*(\d{2}/\d{2}/\d{4})", re.IGNORECASE)
 
@@ -89,26 +121,81 @@ def _extrair_tipo_imovel(descricao: str) -> str:
     return descricao.split(",", 1)[0].strip() or "Imóvel"
 
 
+def identificar_protecao(headers: Dict[str, str], corpo: str) -> List[str]:
+    """Identifica CDN/WAF/anti-bot a partir dos cabeçalhos e do corpo da resposta."""
+    cabecalhos = " ".join(f"{k}: {v}" for k, v in headers.items()).lower()
+    texto = f"{cabecalhos}\n{(corpo or '').lower()}"
+    return [nome for nome, marcadores in _ASSINATURAS_PROTECAO if any(m in texto for m in marcadores)]
+
+
+def diagnosticar_resposta(resp, corpo: bytes, salvar_em: Optional[Path] = None) -> str:
+    """Monta um resumo da resposta (status, cabeçalhos, proteção, trecho do corpo)."""
+    texto = corpo.decode("utf-8", errors="replace")
+    headers = dict(resp.headers or {})
+    headers_ci = {k.lower(): v for k, v in headers.items()}
+
+    historico = [f"{r.status_code} {r.url}" for r in (getattr(resp, "history", None) or [])]
+    protecoes = identificar_protecao(headers, texto)
+    titulo = re.search(r"<title[^>]*>(.*?)</title>", texto, re.IGNORECASE | re.DOTALL)
+    trecho = " ".join(re.sub(r"<[^>]+>", " ", texto).split())[:500]
+
+    linhas = [
+        "🔎 DIAGNÓSTICO DO DOWNLOAD DO CSV",
+        f"   URL final: {getattr(resp, 'url', '?')}",
+        f"   Status HTTP: {getattr(resp, 'status_code', '?')} {getattr(resp, 'reason', '') or ''}".rstrip(),
+        f"   Redirecionamentos: {' -> '.join(historico) if historico else 'nenhum'}",
+        f"   Proteção detectada: {', '.join(protecoes) if protecoes else 'não identificada'}",
+        f"   Título da página: {titulo.group(1).strip()[:200] if titulo else '(sem título)'}",
+        f"   Tamanho do corpo: {len(corpo)} bytes",
+        "   Cabeçalhos relevantes:",
+    ]
+    for nome in _HEADERS_DIAGNOSTICO:
+        valor = headers_ci.get(nome.lower())
+        if valor:
+            linhas.append(f"     {nome}: {valor[:300]}")
+    linhas.append(f"   Início do conteúdo (sem HTML): {trecho or '(vazio)'}")
+
+    if salvar_em is not None:
+        salvar_em = Path(salvar_em)
+        salvar_em.parent.mkdir(parents=True, exist_ok=True)
+        salvar_em.write_bytes(corpo)
+        linhas.append(f"   Resposta completa salva em: {salvar_em}")
+
+    return "\n".join(linhas)
+
+
 def baixar_csv_caixa(
     destino: Union[Path, str] = DEFAULT_CSV_PATH,
     url: str = CAIXA_CSV_URL,
     timeout: int = DEFAULT_TIMEOUT,
+    diagnostico_path: Optional[Union[Path, str]] = DIAGNOSTICO_HTML_PATH,
 ) -> Path:
-    """Baixa o CSV oficial da Caixa para o caminho especificado e retorna o Path."""
+    """Baixa o CSV oficial da Caixa para o caminho especificado e retorna o Path.
+
+    Se a resposta não for o CSV (erro HTTP ou página HTML de bloqueio), registra um
+    diagnóstico no log e salva a resposta em ``diagnostico_path`` antes de falhar.
+    """
     logger = get_logger("csv_loader")
     destino_path = Path(destino)
     destino_path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = destino_path.with_suffix(".csv.tmp")
+    salvar_diag = Path(diagnostico_path) if diagnostico_path else None
 
     logger.info(f"Baixando lista oficial de imóveis da Caixa: {url}")
     try:
         with requests.get(url, headers=_HEADERS, timeout=timeout, stream=True) as resp:
-            resp.raise_for_status()
-            content_type = resp.headers.get("Content-Type", "").lower()
-            if "text/html" in content_type:
+            content_type = (resp.headers.get("Content-Type") or "").lower()
+            bloqueado = resp.status_code >= 400 or "text/html" in content_type
+            if bloqueado:
+                corpo = resp.content or b""
+                diagnostico = diagnosticar_resposta(resp, corpo, salvar_em=salvar_diag)
+                logger.error(diagnostico)
+                print(diagnostico, flush=True)
+                protecoes = identificar_protecao(dict(resp.headers or {}), corpo.decode("utf-8", "replace"))
+                origem = ", ".join(protecoes) if protecoes else "proteção não identificada"
                 raise DataExtractionError(
-                    "O site da Caixa bloqueou o download automático (proteção anti-bot / hCaptcha). "
-                    "Baixe o arquivo Lista_imoveis_geral.csv manualmente pelo navegador em "
+                    f"O site da Caixa não entregou o CSV (HTTP {resp.status_code}, {origem}). "
+                    "Veja o diagnóstico acima. Alternativa: baixe Lista_imoveis_geral.csv pelo navegador em "
                     "https://venda-imoveis.caixa.gov.br/sistema/download-lista.asp "
                     "e execute com: python scraper_automatico.py --csv <caminho_do_csv>"
                 )
