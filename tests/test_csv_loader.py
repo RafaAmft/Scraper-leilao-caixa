@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from scraper_caixa.csv_loader import (
     baixar_csv_caixa,
     buscar_imoveis_csv,
+    identificar_protecao,
     carregar_csv_caixa,
     filtrar_imoveis_csv,
     parse_preco_br,
@@ -90,6 +91,8 @@ def test_buscar_imoveis_csv_config(sample_csv_path: Path):
 def test_baixar_csv_caixa_sucesso(tmp_path: Path):
     destino = tmp_path / "baixado.csv"
     mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.headers = {"Content-Type": "text/csv"}
     mock_resp.iter_content.return_value = [b"\n", SAMPLE_CSV.encode("latin1")]
     mock_resp.__enter__.return_value = mock_resp
     mock_resp.__exit__.return_value = False
@@ -110,3 +113,60 @@ def test_carregar_csv_invalido_levanta_erro(tmp_path: Path):
     invalido.write_text("coluna1;coluna2\n1;2\n", encoding="latin1")
     with pytest.raises(DataExtractionError):
         carregar_csv_caixa(invalido)
+
+
+def _resposta_bloqueada(status: int, headers: dict, corpo: bytes) -> MagicMock:
+    mock_resp = MagicMock()
+    mock_resp.status_code = status
+    mock_resp.reason = "Forbidden" if status == 403 else "OK"
+    mock_resp.url = "https://venda-imoveis.caixa.gov.br/listaweb/Lista_imoveis_geral.csv"
+    mock_resp.history = []
+    mock_resp.headers = headers
+    mock_resp.content = corpo
+    mock_resp.__enter__.return_value = mock_resp
+    mock_resp.__exit__.return_value = False
+    return mock_resp
+
+
+def test_baixar_csv_bloqueio_cloudflare_gera_diagnostico(tmp_path: Path, capsys):
+    corpo = b"<html><head><title>Just a moment...</title></head><body>challenges.cloudflare.com</body></html>"
+    resp = _resposta_bloqueada(
+        403,
+        {"Content-Type": "text/html; charset=UTF-8", "Server": "cloudflare", "CF-RAY": "abc123-GRU"},
+        corpo,
+    )
+    diag = tmp_path / "resposta.html"
+
+    with patch("scraper_caixa.csv_loader.requests.get", return_value=resp):
+        with pytest.raises(DataExtractionError, match="HTTP 403, Cloudflare"):
+            baixar_csv_caixa(destino=tmp_path / "x.csv", diagnostico_path=diag)
+
+    saida = capsys.readouterr().out
+    assert "Status HTTP: 403" in saida
+    assert "CF-RAY: abc123-GRU" in saida
+    assert "Just a moment..." in saida
+    assert diag.read_bytes() == corpo
+    assert not (tmp_path / "x.csv").exists()
+
+
+def test_baixar_csv_html_200_sem_protecao_conhecida(tmp_path: Path, capsys):
+    resp = _resposta_bloqueada(200, {"Content-Type": "text/html"}, b"<html><body>Erro</body></html>")
+
+    with patch("scraper_caixa.csv_loader.requests.get", return_value=resp):
+        with pytest.raises(DataExtractionError, match="proteção não identificada"):
+            baixar_csv_caixa(destino=tmp_path / "x.csv", diagnostico_path=None)
+
+    assert "Proteção detectada: não identificada" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "headers,corpo,esperado",
+    [
+        ({"Server": "cloudflare"}, "", "Cloudflare"),
+        ({}, "<script src='https://validate.perfdrive.com/x'></script>", "Radware Bot Manager"),
+        ({"Set-Cookie": "visid_incap_123=abc"}, "", "Imperva/Incapsula"),
+        ({}, "<div class='h-captcha' data-sitekey='x'></div><script src='hcaptcha.com/1/api.js'>", "hCaptcha"),
+    ],
+)
+def test_identificar_protecao(headers, corpo, esperado):
+    assert esperado in identificar_protecao(headers, corpo)

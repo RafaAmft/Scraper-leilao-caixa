@@ -124,6 +124,8 @@ jobs:
             imoveis_*.csv
             screenshot_*.png
             *.log
+            logs/*.log
+            dados_imoveis/resposta_bloqueio.html
           retention-days: 30
           if-no-files-found: warn
           
