@@ -2,7 +2,7 @@
 REM ==========================================================================
 REM  Executa o scraper sem interacao (usado pelo Agendador de Tarefas).
 REM  - Baixa o CSV da Caixa (--metodo auto --headless), gera os relatorios
-REM    e envia o e-mail.
+REM    e o painel, publica o painel no GitHub Pages e envia o e-mail.
 REM  - Toda a saida vai para logs\agendador.log
 REM  Argumentos extras sao repassados ao scraper, ex.:
 REM    agendar_scraper.bat --sem-email
@@ -26,7 +26,7 @@ set "LOG=logs\agendador.log"
 
 echo.>> "%LOG%"
 echo ===== Inicio: %date% %time% =====>> "%LOG%"
-"%PY%" scraper_automatico.py --metodo auto --headless %* >> "%LOG%" 2>&1
+"%PY%" scraper_automatico.py --metodo auto --headless --publicar-painel %* >> "%LOG%" 2>&1
 set "CODIGO=%ERRORLEVEL%"
 echo ===== Fim: %date% %time% (codigo de saida %CODIGO%) =====>> "%LOG%"
 

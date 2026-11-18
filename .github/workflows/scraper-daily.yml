@@ -1,11 +1,11 @@
 name: 🏠 Scraper Diário de Imóveis
 
 on:
-  # Executar automaticamente todos os dias às 8h (horário UTC)
-  # 8h UTC = 5h Brasília (considerando horário de verão pode variar)
-  schedule:
-    - cron: '0 8 * * *'  # Todos os dias às 8h UTC
-  
+  # Sem agendamento: o site da Caixa (Radware Bot Manager) bloqueia o download
+  # a partir dos runners do GitHub. A execução diária roda no PC pelo Agendador
+  # de Tarefas (scripts/agendar_scraper.bat), que também publica o painel no
+  # GitHub Pages. Este workflow fica só para execução manual/diagnóstico.
+
   # Permitir execução manual
   workflow_dispatch:
     inputs:
