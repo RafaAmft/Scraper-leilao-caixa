@@ -267,7 +267,11 @@ def gerar_e_abrir_painel(df, destino, data_geracao, config, abrir, logger, publi
     try:
         from scraper_caixa.painel import gerar_painel_html
 
-        caminho = gerar_painel_html(df, destino, data_geracao=data_geracao, config_cidades=config)
+        from scraper_caixa.painel import DEFAULT_HISTORICO_DIR
+
+        caminho = gerar_painel_html(
+            df, destino, data_geracao=data_geracao, config_cidades=config, historico_dir=DEFAULT_HISTORICO_DIR
+        )
         logger.info(f"📊 Painel com {len(df)} imóveis salvo em '{caminho}'")
         if abrir:
             import webbrowser

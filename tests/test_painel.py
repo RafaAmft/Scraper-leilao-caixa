@@ -69,3 +69,83 @@ def test_gerar_painel_html_embute_dados(tmp_path: Path):
     dados = json.loads(m.group(1))
     assert dados["total"] == 3
     assert dados["col"]["endereco"][1] == "RUA </script><b>X</b>"
+
+
+# ---------------------------------------------------------------------------
+# Histórico / mudanças desde a lista anterior
+# ---------------------------------------------------------------------------
+from scraper_caixa.painel import (  # noqa: E402
+    NOVO,
+    PRECO_AUMENTADO,
+    PRECO_REDUZIDO,
+    SEM_MUDANCA,
+    aplicar_historico,
+    carregar_snapshot_anterior,
+    comparar_com_anterior,
+    salvar_snapshot,
+    snapshot_de_painel_existente,
+    snapshot_dos_dados,
+)
+
+
+def _anterior(**precos):
+    """Snapshot de uma lista anterior com os ids/preços dados (id 99999 saiu da lista)."""
+    itens = {k.replace("i", ""): ["SC", "JOINVILLE", "CENTRO", "Casa", v] for k, v in precos.items()}
+    itens["99999"] = ["DF", "BRASILIA", "ASA NORTE", "Apartamento", 250000.0]
+    return {"data_lista": "10/11/2026", "data_iso": "2026-11-10", "itens": itens}
+
+
+def test_comparar_com_anterior_marca_novos_precos_e_removidos(tmp_path: Path):
+    dados = preparar_dados_painel(_df(tmp_path), data_geracao="13/11/2026")
+    # 10005120 sem mudança, 10005121 caiu de preço, 10005122 é novo
+    m = comparar_com_anterior(dados, _anterior(i10005120=150000.0, i10005121=350000.0))
+
+    assert m["situacao"] == [SEM_MUDANCA, PRECO_REDUZIDO, NOVO]
+    assert m["preco_anterior"] == [None, 350000.0, None]
+    assert m["contagem"] == {"novos": 1, "preco_reduzido": 1, "preco_aumentado": 0, "removidos": 1}
+    assert m["removidos"] == [["99999", "DF", "BRASILIA", "ASA NORTE", "Apartamento", 250000.0]]
+    assert m["data_anterior"] == "10/11/2026"
+
+    m2 = comparar_com_anterior(dados, _anterior(i10005120=140000.0))
+    assert m2["situacao"][0] == PRECO_AUMENTADO
+
+
+def test_snapshots_salvar_podar_e_carregar_anterior(tmp_path: Path):
+    hist = tmp_path / "historico"
+    for dia in range(1, 14):
+        salvar_snapshot({"data_lista": None, "data_iso": f"2026-11-{dia:02d}", "itens": {}}, hist, manter=10)
+    arquivos = sorted(p.name for p in hist.glob("lista_*.json"))
+    assert len(arquivos) == 10 and arquivos[0] == "lista_2026-11-04.json"
+
+    assert carregar_snapshot_anterior(hist, "2026-11-13")["data_iso"] == "2026-11-12"
+    assert carregar_snapshot_anterior(hist, "2026-11-04") is None
+    assert carregar_snapshot_anterior(tmp_path / "nao_existe", "2026-11-13") is None
+
+
+def test_aplicar_historico_primeira_vez_usa_painel_existente(tmp_path: Path):
+    df = _df(tmp_path)
+    hist = tmp_path / "historico"
+    painel = tmp_path / "painel.html"
+
+    # painel "de ontem" (lista 10/11) gerado sem histórico
+    gerar_painel_html(df, painel, data_geracao="10/11/2026", config_cidades=CONFIG)
+    assert snapshot_de_painel_existente(painel)["data_iso"] == "2026-11-10"
+
+    dados = preparar_dados_painel(df, data_geracao="13/11/2026")
+    aplicar_historico(dados, hist, painel_existente=painel)
+
+    assert dados["mudancas"]["data_anterior"] == "10/11/2026"
+    assert dados["mudancas"]["contagem"]["novos"] == 0
+    assert sorted(p.name for p in hist.glob("lista_*.json")) == ["lista_2026-11-10.json", "lista_2026-11-13.json"]
+
+
+def test_gerar_painel_com_historico_embute_mudancas_e_noindex(tmp_path: Path):
+    hist = tmp_path / "historico"
+    salvar_snapshot(_anterior(i10005120=150000.0, i10005121=350000.0), hist)
+    destino = gerar_painel_html(_df(tmp_path), tmp_path / "p.html", data_geracao="13/11/2026", historico_dir=hist)
+    html = destino.read_text(encoding="utf-8")
+    dados = json.loads(re.search(r"const DADOS = (\{.*?\});\n", html, re.DOTALL).group(1))
+
+    assert '<meta name="robots" content="noindex, nofollow">' in html
+    assert dados["mudancas"]["contagem"]["removidos"] == 1
+    assert snapshot_dos_dados(dados)["data_iso"] == "2026-11-13"
