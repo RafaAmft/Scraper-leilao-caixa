@@ -11,7 +11,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from scraper_caixa.csv_loader import (
     baixar_csv_caixa,
     buscar_imoveis_csv,
+    diagnosticar_resposta,
     identificar_protecao,
+    obter_csv_caixa,
     carregar_csv_caixa,
     filtrar_imoveis_csv,
     parse_preco_br,
@@ -128,7 +130,7 @@ def _resposta_bloqueada(status: int, headers: dict, corpo: bytes) -> MagicMock:
     return mock_resp
 
 
-def test_baixar_csv_bloqueio_cloudflare_gera_diagnostico(tmp_path: Path, capsys):
+def test_baixar_csv_bloqueio_cloudflare_gera_diagnostico(tmp_path: Path):
     corpo = b"<html><head><title>Just a moment...</title></head><body>challenges.cloudflare.com</body></html>"
     resp = _resposta_bloqueada(
         403,
@@ -141,7 +143,7 @@ def test_baixar_csv_bloqueio_cloudflare_gera_diagnostico(tmp_path: Path, capsys)
         with pytest.raises(DataExtractionError, match="HTTP 403, Cloudflare"):
             baixar_csv_caixa(destino=tmp_path / "x.csv", diagnostico_path=diag)
 
-    saida = capsys.readouterr().out
+    saida = diagnosticar_resposta(resp, corpo)
     assert "Status HTTP: 403" in saida
     assert "CF-RAY: abc123-GRU" in saida
     assert "Just a moment..." in saida
@@ -149,14 +151,14 @@ def test_baixar_csv_bloqueio_cloudflare_gera_diagnostico(tmp_path: Path, capsys)
     assert not (tmp_path / "x.csv").exists()
 
 
-def test_baixar_csv_html_200_sem_protecao_conhecida(tmp_path: Path, capsys):
+def test_baixar_csv_html_200_sem_protecao_conhecida(tmp_path: Path):
     resp = _resposta_bloqueada(200, {"Content-Type": "text/html"}, b"<html><body>Erro</body></html>")
 
     with patch("scraper_caixa.csv_loader.requests.get", return_value=resp):
         with pytest.raises(DataExtractionError, match="proteção não identificada"):
             baixar_csv_caixa(destino=tmp_path / "x.csv", diagnostico_path=None)
 
-    assert "Proteção detectada: não identificada" in capsys.readouterr().out
+    assert "Proteção detectada: não identificada" in diagnosticar_resposta(resp, resp.content)
 
 
 @pytest.mark.parametrize(
@@ -170,3 +172,54 @@ def test_baixar_csv_html_200_sem_protecao_conhecida(tmp_path: Path, capsys):
 )
 def test_identificar_protecao(headers, corpo, esperado):
     assert esperado in identificar_protecao(headers, corpo)
+
+
+def test_obter_csv_auto_cai_para_navegador_quando_requests_bloqueado(tmp_path: Path, monkeypatch):
+    monkeypatch.delenv("RUNNER_ENVIRONMENT", raising=False)
+    destino = tmp_path / "lista.csv"
+
+    def fake_navegador(dest, **kwargs):
+        Path(dest).write_text(SAMPLE_CSV, encoding="latin1")
+        return Path(dest)
+
+    with patch("scraper_caixa.csv_loader.baixar_csv_caixa", side_effect=DataExtractionError("Radware")), \
+         patch("scraper_caixa.browser_download.baixar_csv_com_navegador", side_effect=fake_navegador) as nav, \
+         patch("scraper_caixa.browser_download.encontrar_csv_em_downloads") as dl:
+        caminho = obter_csv_caixa(destino, metodo="auto", headless=True)
+
+    assert caminho == destino
+    nav.assert_called_once()
+    assert nav.call_args.kwargs["headless"] is True
+    dl.assert_not_called()
+
+
+def test_obter_csv_auto_usa_downloads_quando_navegador_falha(tmp_path: Path, monkeypatch):
+    monkeypatch.delenv("RUNNER_ENVIRONMENT", raising=False)
+    downloads = tmp_path / "Downloads"
+    downloads.mkdir()
+    (downloads / "Lista_imoveis_geral (1).csv").write_bytes(("\n" + SAMPLE_CSV).encode("latin1"))
+    destino = tmp_path / "dados" / "lista.csv"
+
+    with patch("scraper_caixa.csv_loader.baixar_csv_caixa", side_effect=DataExtractionError("Radware")), \
+         patch("scraper_caixa.browser_download.baixar_csv_com_navegador", side_effect=ImportError("sem playwright")):
+        caminho = obter_csv_caixa(destino, metodo="auto", pasta_downloads=downloads)
+
+    assert caminho == destino
+    df, _ = carregar_csv_caixa(destino)
+    assert len(df) == 3
+
+
+def test_obter_csv_auto_no_github_hospedado_so_tenta_requests(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("RUNNER_ENVIRONMENT", "github-hosted")
+
+    with patch("scraper_caixa.csv_loader.baixar_csv_caixa", side_effect=DataExtractionError("Radware")), \
+         patch("scraper_caixa.browser_download.baixar_csv_com_navegador") as nav:
+        with pytest.raises(DataExtractionError, match=r"\[requests\] Radware"):
+            obter_csv_caixa(tmp_path / "x.csv", metodo="auto")
+
+    nav.assert_not_called()
+
+
+def test_obter_csv_metodo_invalido(tmp_path: Path):
+    with pytest.raises(ValueError):
+        obter_csv_caixa(tmp_path / "x.csv", metodo="ftp")

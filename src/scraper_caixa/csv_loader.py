@@ -1,6 +1,7 @@
 """Módulo para download e filtragem da lista oficial de imóveis da Caixa (CSV)."""
 
 from datetime import datetime
+import os
 from pathlib import Path
 import re
 from typing import Dict, List, Optional, Tuple, Union
@@ -190,7 +191,6 @@ def baixar_csv_caixa(
                 corpo = resp.content or b""
                 diagnostico = diagnosticar_resposta(resp, corpo, salvar_em=salvar_diag)
                 logger.error(diagnostico)
-                print(diagnostico, flush=True)
                 protecoes = identificar_protecao(dict(resp.headers or {}), corpo.decode("utf-8", "replace"))
                 origem = ", ".join(protecoes) if protecoes else "proteção não identificada"
                 raise DataExtractionError(
@@ -340,15 +340,93 @@ def filtrar_imoveis_csv(
     return resultados
 
 
+METODOS_DOWNLOAD = ("auto", "requests", "navegador", "downloads")
+
+
+def _em_runner_hospedado_do_github() -> bool:
+    """True em runners hospedados do GitHub, onde não há navegador interativo nem pasta Downloads."""
+    return os.getenv("RUNNER_ENVIRONMENT") == "github-hosted"
+
+
+def obter_csv_caixa(
+    destino: Union[Path, str] = DEFAULT_CSV_PATH,
+    metodo: str = "auto",
+    perfil_navegador: Optional[Union[Path, str]] = None,
+    headless: bool = False,
+    pasta_downloads: Optional[Union[Path, str]] = None,
+    timeout_navegador_s: Optional[int] = None,
+) -> Path:
+    """Obtém o CSV da Caixa pelo método escolhido e retorna o caminho salvo.
+
+    Métodos:
+      - ``requests``: download HTTP direto (costuma ser bloqueado pela Radware).
+      - ``navegador``: Chrome real via Playwright, com perfil persistente.
+      - ``downloads``: usa o CSV mais recente baixado manualmente na pasta Downloads.
+      - ``auto``: tenta ``requests`` -> ``navegador`` -> ``downloads``, nessa ordem
+        (em runners hospedados do GitHub, só ``requests``).
+    """
+    from . import browser_download as bd
+
+    if metodo not in METODOS_DOWNLOAD:
+        raise ValueError(f"Método inválido: {metodo!r}. Use um de {METODOS_DOWNLOAD}.")
+
+    logger = get_logger("csv_loader")
+    destino = Path(destino)
+
+    if metodo == "auto":
+        ordem = ["requests"] if _em_runner_hospedado_do_github() else ["requests", "navegador", "downloads"]
+    else:
+        ordem = [metodo]
+
+    erros: List[str] = []
+    for etapa in ordem:
+        try:
+            if etapa == "requests":
+                return baixar_csv_caixa(destino)
+            if etapa == "navegador":
+                kwargs = {"headless": headless}
+                if perfil_navegador:
+                    kwargs["perfil_dir"] = perfil_navegador
+                if timeout_navegador_s:
+                    kwargs["timeout_s"] = timeout_navegador_s
+                return bd.baixar_csv_com_navegador(destino, **kwargs)
+            if etapa == "downloads":
+                encontrado = bd.encontrar_csv_em_downloads(pasta_downloads)
+                if encontrado is None:
+                    pasta = pasta_downloads or bd.pasta_downloads_padrao()
+                    raise DataExtractionError(
+                        f"Nenhum Lista_imoveis_geral*.csv recente (últimas 24h) em '{pasta}'."
+                    )
+                return bd.copiar_csv(encontrado, destino)
+        except Exception as exc:
+            erros.append(f"[{etapa}] {exc}")
+            if etapa != ordem[-1]:
+                logger.warning(f"Método '{etapa}' falhou; tentando o próximo. Motivo: {exc}")
+
+    raise DataExtractionError(
+        "Não foi possível obter o CSV da Caixa.\n  "
+        + "\n  ".join(erros)
+        + "\nAlternativa: baixe Lista_imoveis_geral.csv pelo navegador em "
+        "https://venda-imoveis.caixa.gov.br/sistema/download-lista.asp e rode novamente "
+        "(o script procura na pasta Downloads) ou use --csv <caminho_do_csv>."
+    )
+
+
 def buscar_imoveis_csv(
     config_cidades: Dict,
     caminho_csv: Optional[Union[Path, str]] = None,
     baixar_se_necessario: bool = True,
+    metodo_download: str = "auto",
+    **opcoes_download,
 ) -> Tuple[Dict[str, Dict[str, List[DadosImovel]]], Optional[str]]:
-    """Baixa/carrega o CSV da Caixa e filtra para todas as cidades configuradas."""
+    """Obtém/carrega o CSV da Caixa e filtra para todas as cidades configuradas.
+
+    ``opcoes_download`` é repassado a ``obter_csv_caixa`` (perfil_navegador,
+    headless, pasta_downloads, timeout_navegador_s).
+    """
     destino = Path(caminho_csv) if caminho_csv else DEFAULT_CSV_PATH
     if baixar_se_necessario and caminho_csv is None:
-        destino = baixar_csv_caixa(destino)
+        destino = obter_csv_caixa(destino, metodo=metodo_download, **opcoes_download)
 
     df, data_geracao = carregar_csv_caixa(destino)
 
