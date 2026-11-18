@@ -149,3 +149,10 @@ def test_gerar_painel_com_historico_embute_mudancas_e_noindex(tmp_path: Path):
     assert '<meta name="robots" content="noindex, nofollow">' in html
     assert dados["mudancas"]["contagem"]["removidos"] == 1
     assert snapshot_dos_dados(dados)["data_iso"] == "2026-11-13"
+
+
+def test_template_faz_hidden_vencer_display_das_classes():
+    """Regressão: sem esta regra, a faixa de mudanças aparecia vazia na 1ª execução."""
+    from scraper_caixa.painel import _TEMPLATE_PATH
+
+    assert "[hidden] { display: none !important; }" in _TEMPLATE_PATH.read_text(encoding="utf-8")
