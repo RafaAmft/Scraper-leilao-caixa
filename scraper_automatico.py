@@ -401,6 +401,14 @@ def main():
         help="Abre o navegador sem janela (só funciona depois que o perfil já passou pelo captcha).",
     )
     parser.add_argument(
+        "--janela-escondida",
+        action="store_true",
+        help=(
+            "Abre o Chrome com janela, mas fora da área visível da tela. Mais confiável que "
+            "--headless contra a proteção da Caixa; ideal para o Agendador de Tarefas."
+        ),
+    )
+    parser.add_argument(
         "--perfil-navegador",
         default=None,
         help="Pasta do perfil persistente do navegador (padrão: navegador_perfil).",
@@ -422,6 +430,7 @@ def main():
         return
     opcoes_download = {
         "headless": args.headless,
+        "janela_escondida": args.janela_escondida,
         "perfil_navegador": args.perfil_navegador,
         "pasta_downloads": args.pasta_downloads,
     }

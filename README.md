@@ -77,7 +77,13 @@ python scraper_automatico.py --metodo navegador --sem-email
 ```
 Se aparecer um captcha, resolva-o na janela; o download continua sozinho. Os cookies de
 liberação ficam salvos em `navegador_perfil/` (não versionado) e são reaproveitados nas
-próximas execuções, que podem rodar com `--headless`.
+próximas execuções.
+
+Para rodar sem a janela atrapalhar (ex.: Agendador de Tarefas), use uma das opções:
+- `--janela-escondida`: Chrome com janela, mas fora da área visível da tela (**recomendado**,
+  para o site é um navegador comum);
+- `--headless`: Chrome sem janela. O script disfarça o User-Agent `HeadlessChrome`, mas a
+  proteção pode detectar o modo headless por outros sinais; nesse caso desiste em 45s.
 
 Se mesmo assim for bloqueado, baixe o arquivo manualmente em
 <https://venda-imoveis.caixa.gov.br/sistema/download-lista.asp> e rode

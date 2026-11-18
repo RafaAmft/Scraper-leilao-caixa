@@ -150,3 +150,57 @@ def test_baixar_csv_com_navegador_tenta_requisicao_de_novo_se_download_falha(tmp
 
     assert parece_csv_caixa(destino)
     assert contexto.request.get.call_count == 2
+
+
+def test_abrir_contexto_headless_troca_user_agent_headless():
+    from scraper_caixa.browser_download import _abrir_contexto
+
+    ua_headless = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 HeadlessChrome/153.0.0.0 Safari/537.36"
+    primeiro = MagicMock()
+    primeiro.pages[0].evaluate.return_value = ua_headless
+    segundo = MagicMock()
+    playwright = MagicMock()
+    playwright.chromium.launch_persistent_context.side_effect = [primeiro, segundo]
+
+    contexto = _abrir_contexto(playwright, Path("perfil"), headless=True)
+
+    assert contexto is segundo
+    primeiro.close.assert_called_once()
+    chamadas = playwright.chromium.launch_persistent_context.call_args_list
+    assert "user_agent" not in chamadas[0].kwargs
+    assert chamadas[1].kwargs["user_agent"] == ua_headless.replace("HeadlessChrome", "Chrome")
+    assert "--disable-blink-features=AutomationControlled" in chamadas[1].kwargs["args"]
+
+
+def test_abrir_contexto_com_janela_nao_reabre():
+    from scraper_caixa.browser_download import _abrir_contexto
+
+    playwright = MagicMock()
+    _abrir_contexto(playwright, Path("perfil"), headless=False)
+
+    assert playwright.chromium.launch_persistent_context.call_count == 1
+    kwargs = playwright.chromium.launch_persistent_context.call_args.kwargs
+    assert kwargs["headless"] is False
+    assert "--disable-blink-features=AutomationControlled" in kwargs["args"]
+
+
+def test_baixar_csv_headless_usa_timeout_curto(tmp_path: Path):
+    sync_pw, _, contexto = _mock_playwright(CSV_OK)
+    pagina = contexto.pages[0]
+    pagina.evaluate.return_value = "Mozilla/5.0 Chrome/153.0.0.0"
+
+    with patch("scraper_caixa.browser_download._importar_playwright", return_value=sync_pw):
+        baixar_csv_com_navegador(tmp_path / "lista.csv", perfil_dir=tmp_path / "perfil", headless=True)
+
+    assert pagina.expect_download.call_args.kwargs["timeout"] == 45_000
+
+
+def test_abrir_contexto_janela_escondida_posiciona_fora_da_tela():
+    from scraper_caixa.browser_download import _abrir_contexto
+
+    playwright = MagicMock()
+    _abrir_contexto(playwright, Path("perfil"), headless=False, janela_escondida=True)
+
+    kwargs = playwright.chromium.launch_persistent_context.call_args.kwargs
+    assert kwargs["headless"] is False
+    assert "--window-position=-32000,-32000" in kwargs["args"]

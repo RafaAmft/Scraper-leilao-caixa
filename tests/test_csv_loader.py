@@ -190,6 +190,7 @@ def test_obter_csv_auto_cai_para_navegador_quando_requests_bloqueado(tmp_path: P
     assert caminho == destino
     nav.assert_called_once()
     assert nav.call_args.kwargs["headless"] is True
+    assert nav.call_args.kwargs["janela_escondida"] is False
     dl.assert_not_called()
 
 
