@@ -91,6 +91,27 @@ Se mesmo assim for bloqueado, baixe o arquivo manualmente em
 
 Outras opções: `--perfil-navegador <pasta>`, `--pasta-downloads <pasta>`.
 
+### 📊 Painel de imóveis (Brasil inteiro)
+
+A cada execução o scraper gera **`painel_imoveis.html`** com **todos os imóveis da lista
+da Caixa** (não só as cidades monitoradas). É um arquivo único, que abre em qualquer
+navegador e funciona offline:
+
+- **Métricas gerais:** total de imóveis, preço mediano, desconto mediano, preço mediano
+  por m² e % que aceita financiamento — recalculadas conforme os filtros;
+- **Gráficos:** imóveis por estado, cidades com mais imóveis, modalidade de venda e faixa
+  de desconto (clique em uma barra para filtrar);
+- **Filtros:** estado, cidade, tipo, modalidade, preço máximo, desconto mínimo, quartos,
+  financiamento, busca por bairro/endereço e "só cidades monitoradas";
+- **Tabela** ordenável com link para cada imóvel no site da Caixa e **exportação CSV**
+  do resultado filtrado; tema claro/escuro.
+
+```bash
+python scraper_automatico.py --abrir-painel          # gera e abre no navegador
+python scraper_automatico.py --csv dados_imoveis/Lista_imoveis_geral.csv --sem-email --abrir-painel
+```
+Opções: `--painel <arquivo>` (outro nome/pasta) e `--sem-painel` (não gera).
+
 ### ⏰ Execução diária no Windows (Agendador de Tarefas)
 
 O GitHub Actions é bloqueado pela proteção da Caixa, então a rotina diária roda no seu PC.

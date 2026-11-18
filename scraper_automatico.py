@@ -21,7 +21,7 @@ from typing import Optional
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
 
 from config.logging_config import get_logger, setup_logging
-from scraper_caixa.csv_loader import buscar_imoveis_csv
+from scraper_caixa.csv_loader import carregar_ou_baixar_csv, filtrar_cidades_configuradas
 from scraper_caixa.gmail_oauth import (
     DEFAULT_CREDENTIALS_PATH,
     DEFAULT_TOKEN_PATH,
@@ -258,11 +258,28 @@ def _formatar_imovel_relatorio(indice: int, imovel: dict) -> str:
     return "\n".join(linhas)
 
 
+def gerar_e_abrir_painel(df, destino, data_geracao, config, abrir, logger) -> None:
+    """Gera o painel HTML; uma falha aqui não interrompe relatórios nem e-mail."""
+    try:
+        from scraper_caixa.painel import gerar_painel_html
+
+        caminho = gerar_painel_html(df, destino, data_geracao=data_geracao, config_cidades=config)
+        logger.info(f"📊 Painel com {len(df)} imóveis salvo em '{caminho}'")
+        if abrir:
+            import webbrowser
+
+            webbrowser.open(caminho.resolve().as_uri())
+    except Exception as e:
+        logger.error(f"⚠️ Não foi possível gerar o painel: {e}")
+
+
 def buscar_todas_cidades(
     caminho_csv: Optional[str] = None,
     enviar_email: bool = True,
     metodo_download: str = "auto",
     opcoes_download: Optional[dict] = None,
+    painel: Optional[str] = "painel_imoveis.html",
+    abrir_painel: bool = False,
 ):
     """Baixa/lê o CSV oficial da Caixa e gera relatórios para todas as cidades configuradas.
 
@@ -281,16 +298,19 @@ def buscar_todas_cidades(
     logger.info(f"📅 Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
     try:
-        resultados, data_geracao = buscar_imoveis_csv(
-            config_cidades=config,
+        df, data_geracao = carregar_ou_baixar_csv(
             caminho_csv=caminho_csv,
             baixar_se_necessario=caminho_csv is None,
             metodo_download=metodo_download,
             **(opcoes_download or {}),
         )
+        resultados = filtrar_cidades_configuradas(df, config)
     except Exception as e:
         logger.error(f"❌ Erro ao processar CSV da Caixa: {e}")
         return None
+
+    if painel:
+        gerar_e_abrir_painel(df, painel, data_geracao, config, abrir_painel, logger)
 
     if data_geracao:
         logger.info(f"🗓️ Data de geração da lista Caixa: {data_geracao}")
@@ -419,6 +439,21 @@ def main():
         help="Pasta onde procurar o CSV baixado manualmente (padrão: Downloads do usuário).",
     )
     parser.add_argument(
+        "--painel",
+        default="painel_imoveis.html",
+        help="Arquivo do painel HTML com todos os imóveis do Brasil (padrão: painel_imoveis.html).",
+    )
+    parser.add_argument(
+        "--sem-painel",
+        action="store_true",
+        help="Não gera o painel HTML.",
+    )
+    parser.add_argument(
+        "--abrir-painel",
+        action="store_true",
+        help="Abre o painel no navegador ao final.",
+    )
+    parser.add_argument(
         "--auth-gmail",
         action="store_true",
         help="Executa apenas a autenticação OAuth2 do Gmail para gerar config/gmail_token.json.",
@@ -439,6 +474,8 @@ def main():
         enviar_email=not args.sem_email,
         metodo_download=args.metodo,
         opcoes_download=opcoes_download,
+        painel=None if args.sem_painel else args.painel,
+        abrir_painel=args.abrir_painel,
     )
     if resultado is None:
         sys.exit(1)
