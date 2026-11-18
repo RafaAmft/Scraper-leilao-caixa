@@ -413,14 +413,13 @@ def obter_csv_caixa(
     )
 
 
-def buscar_imoveis_csv(
-    config_cidades: Dict,
+def carregar_ou_baixar_csv(
     caminho_csv: Optional[Union[Path, str]] = None,
     baixar_se_necessario: bool = True,
     metodo_download: str = "auto",
     **opcoes_download,
-) -> Tuple[Dict[str, Dict[str, List[DadosImovel]]], Optional[str]]:
-    """Obtém/carrega o CSV da Caixa e filtra para todas as cidades configuradas.
+) -> Tuple[pd.DataFrame, Optional[str]]:
+    """Obtém o CSV da Caixa (se ``caminho_csv`` não for dado) e retorna (DataFrame, data_geracao).
 
     ``opcoes_download`` é repassado a ``obter_csv_caixa`` (perfil_navegador,
     headless, janela_escondida, pasta_downloads, timeout_navegador_s).
@@ -428,9 +427,13 @@ def buscar_imoveis_csv(
     destino = Path(caminho_csv) if caminho_csv else DEFAULT_CSV_PATH
     if baixar_se_necessario and caminho_csv is None:
         destino = obter_csv_caixa(destino, metodo=metodo_download, **opcoes_download)
+    return carregar_csv_caixa(destino)
 
-    df, data_geracao = carregar_csv_caixa(destino)
 
+def filtrar_cidades_configuradas(
+    df: pd.DataFrame, config_cidades: Dict
+) -> Dict[str, Dict[str, List[DadosImovel]]]:
+    """Filtra o DataFrame para cada cidade de ``config_cidades`` ({"cidades": {UF: {cod: nome}}})."""
     resultados: Dict[str, Dict[str, List[DadosImovel]]] = {}
     for estado, cidades in config_cidades.get("cidades", {}).items():
         resultados[estado] = {}
@@ -440,5 +443,18 @@ def buscar_imoveis_csv(
                 estado=estado,
                 cidade=nome_cidade,
             )
+    return resultados
 
-    return resultados, data_geracao
+
+def buscar_imoveis_csv(
+    config_cidades: Dict,
+    caminho_csv: Optional[Union[Path, str]] = None,
+    baixar_se_necessario: bool = True,
+    metodo_download: str = "auto",
+    **opcoes_download,
+) -> Tuple[Dict[str, Dict[str, List[DadosImovel]]], Optional[str]]:
+    """Obtém/carrega o CSV da Caixa e filtra para todas as cidades configuradas."""
+    df, data_geracao = carregar_ou_baixar_csv(
+        caminho_csv, baixar_se_necessario, metodo_download, **opcoes_download
+    )
+    return filtrar_cidades_configuradas(df, config_cidades), data_geracao

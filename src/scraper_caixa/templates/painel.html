@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Imóveis da Caixa</title>
+<style>
+:root {
+  color-scheme: light;
+  --surface-0: #f4f3f0;
+  --surface-1: #fcfcfb;
+  --surface-2: #efeeea;
+  --border: #e2e1dc;
+  --grid: #ebeae6;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #7a7974;
+  --series-1: #2a78d6;
+  --series-muted: #c9c8c2;
+  --accent-text: #1c5cab;
+  --focus: #2a78d6;
+  --chip: #e5eefb;
+  --chip-text: #184f95;
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 1px 1px rgba(0,0,0,.03);
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface-0: #121211;
+    --surface-1: #1a1a19;
+    --surface-2: #242422;
+    --border: #2f2f2c;
+    --grid: #2a2a28;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8f8e86;
+    --series-1: #3987e5;
+    --series-muted: #4a4a46;
+    --accent-text: #86b6ef;
+    --focus: #5598e7;
+    --chip: #1f3550;
+    --chip-text: #b7d3f6;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0: #121211;
+  --surface-1: #1a1a19;
+  --surface-2: #242422;
+  --border: #2f2f2c;
+  --grid: #2a2a28;
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --text-muted: #8f8e86;
+  --series-1: #3987e5;
+  --series-muted: #4a4a46;
+  --accent-text: #86b6ef;
+  --focus: #5598e7;
+  --chip: #1f3550;
+  --chip-text: #b7d3f6;
+  --shadow: none;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--surface-0);
+  color: var(--text-primary);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 20px 16px 48px; }
+
+header.topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+header.topo h1 { font-size: 22px; line-height: 1.2; margin: 0 0 4px; font-weight: 650; letter-spacing: -.01em; }
+header.topo p { margin: 0; color: var(--text-secondary); }
+.btn {
+  border: 1px solid var(--border); background: var(--surface-1); border-radius: 8px;
+  padding: 6px 12px; cursor: pointer; white-space: nowrap; min-height: 34px;
+}
+.btn:hover { background: var(--surface-2); }
+.btn-link { border: 0; background: none; color: var(--accent-text); padding: 6px 4px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+/* Filtros */
+.filtros {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--surface-0);
+  padding: 10px 0 12px; margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.filtros-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 10px; align-items: end; }
+.campo { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.campo label { font-size: 12px; color: var(--text-secondary); }
+.campo select, .campo input[type="search"], .campo input[type="number"] {
+  width: 100%; min-height: 34px; padding: 5px 8px; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--surface-1);
+}
+.campo-check { flex-direction: row; align-items: center; gap: 8px; min-height: 34px; }
+.campo-check label { font-size: 13px; color: var(--text-primary); }
+.campo-check input { width: 16px; height: 16px; accent-color: var(--series-1); }
+.filtros-rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 10px; min-height: 28px; }
+.contagem { font-weight: 600; margin-right: 4px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; background: var(--chip); color: var(--chip-text);
+  border: 0; border-radius: 999px; padding: 3px 10px; font-size: 12px; cursor: pointer;
+}
+.chip span[aria-hidden] { font-size: 14px; line-height: 1; }
+
+/* KPIs */
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.kpi { padding: 14px 16px; min-width: 0; }
+.kpi .rotulo { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+.kpi .valor { font-size: 24px; font-weight: 600; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi.hero .valor { font-size: 48px; letter-spacing: -.02em; }
+.kpi .detalhe { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+/* Gráficos */
+.graficos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.grafico { padding: 14px 16px 12px; min-width: 0; }
+.grafico h2 { font-size: 15px; margin: 0; font-weight: 600; }
+.grafico .sub { font-size: 12px; color: var(--text-muted); margin: 2px 0 12px; }
+.barras { display: grid; grid-template-columns: minmax(84px, max-content) minmax(0, 1fr); column-gap: 10px; row-gap: 4px; }
+.barras.rolavel { max-height: 360px; overflow-y: auto; padding-right: 4px; }
+.barra-linha { display: contents; }
+.barra-rotulo {
+  font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 190px; align-self: center; text-align: right;
+}
+.barra-botao {
+  position: relative; display: flex; align-items: center; gap: 8px; min-height: 24px;
+  border: 0; padding: 0; background: none; cursor: pointer; text-align: left; width: 100%;
+}
+.barra-marca { height: 14px; border-radius: 0 4px 4px 0; background: var(--series-1); min-width: 2px; flex: none; }
+.barra-botao.apagada .barra-marca { background: var(--series-muted); }
+.barra-valor { font-size: 12px; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.barra-botao:hover .barra-marca, .barra-botao:focus-visible .barra-marca { filter: brightness(1.12); }
+.vazio { color: var(--text-muted); font-size: 13px; padding: 16px 0; }
+
+.colunas { display: flex; align-items: flex-end; gap: 2px; height: 210px; padding-top: 20px; border-bottom: 1px solid var(--grid); }
+.coluna {
+  flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+  height: 100%; min-width: 0; border: 0; background: none; padding: 0; cursor: default; position: relative;
+}
+.coluna-marca { width: min(24px, 70%); background: var(--series-1); border-radius: 4px 4px 0 0; min-height: 1px; }
+.coluna-valor { font-size: 11px; color: var(--text-primary); margin-bottom: 3px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.colunas-rotulos { display: flex; gap: 2px; margin-top: 5px; }
+.colunas-rotulos span { flex: 1 1 0; text-align: center; font-size: 11px; color: var(--text-muted); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+#dica {
+  position: fixed; z-index: 20; pointer-events: none; background: var(--surface-1); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12); display: none; max-width: 260px;
+}
+#dica strong { display: block; font-weight: 600; }
+#dica span { color: var(--text-secondary); }
+
+/* Tabela */
+.tabela-card { margin-top: 12px; padding: 14px 0 0; }
+.tabela-topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 0 16px 10px; }
+.tabela-topo h2 { font-size: 15px; margin: 0; font-weight: 600; }
+.tabela-rolagem { overflow-x: auto; border-top: 1px solid var(--border); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th { font-size: 12px; font-weight: 600; color: var(--text-secondary); background: var(--surface-1); position: sticky; top: 0; }
+th button { border: 0; background: none; padding: 0; cursor: pointer; font-weight: 600; color: inherit; display: inline-flex; gap: 4px; align-items: center; }
+th[aria-sort="ascending"] button::after { content: "↑"; }
+th[aria-sort="descending"] button::after { content: "↓"; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+th.num button { flex-direction: row-reverse; }
+td.trunc { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+tbody tr:hover { background: var(--surface-2); }
+td a { color: var(--accent-text); }
+.monitorada { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--series-1); margin-right: 6px; vertical-align: middle; }
+.paginacao { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px 14px; color: var(--text-secondary); font-size: 13px; }
+.paginacao .grupo { display: flex; align-items: center; gap: 6px; }
+.paginacao select { min-height: 32px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-1); padding: 4px 6px; }
+footer { color: var(--text-muted); font-size: 12px; margin-top: 16px; }
+
+@media (max-width: 1000px) {
+  .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kpi.hero { grid-column: span 3; }
+}
+@media (max-width: 760px) {
+  .graficos { grid-template-columns: minmax(0, 1fr); }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi.hero { grid-column: span 2; }
+  .kpi.hero .valor { font-size: 40px; }
+  .kpi .valor { font-size: 20px; }
+  .kpi { padding: 12px 14px; }
+  .filtros { position: static; }
+  .filtros-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  header.topo h1 { font-size: 19px; }
+  .barra-rotulo { max-width: 120px; }
+}
+@media print {
+  .filtros, #tema, .paginacao, #exportar { display: none; }
+  body { background: #fff; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topo">
+    <div>
+      <h1>Imóveis da Caixa</h1>
+      <p id="subtitulo"></p>
+    </div>
+    <button class="btn" id="tema" type="button" aria-label="Alternar tema claro/escuro">Tema</button>
+  </header>
+
+  <section class="filtros" aria-label="Filtros">
+    <div class="filtros-grade">
+      <div class="campo"><label for="f-uf">Estado</label><select id="f-uf"></select></div>
+      <div class="campo"><label for="f-cidade">Cidade</label><select id="f-cidade"></select></div>
+      <div class="campo"><label for="f-tipo">Tipo</label><select id="f-tipo"></select></div>
+      <div class="campo"><label for="f-modalidade">Modalidade</label><select id="f-modalidade"></select></div>
+      <div class="campo"><label for="f-preco">Preço máximo (R$)</label><input id="f-preco" type="number" min="0" step="10000" inputmode="numeric" placeholder="Sem limite"></div>
+      <div class="campo"><label for="f-desconto">Desconto mínimo</label>
+        <select id="f-desconto">
+          <option value="">Qualquer</option><option value="10">10% ou mais</option><option value="20">20% ou mais</option>
+          <option value="30">30% ou mais</option><option value="40">40% ou mais</option><option value="50">50% ou mais</option><option value="60">60% ou mais</option>
+        </select></div>
+      <div class="campo"><label for="f-quartos">Quartos</label>
+        <select id="f-quartos">
+          <option value="">Qualquer</option><option value="1">1 ou mais</option><option value="2">2 ou mais</option><option value="3">3 ou mais</option><option value="4">4 ou mais</option>
+        </select></div>
+      <div class="campo"><label for="f-financiamento">Financiamento</label>
+        <select id="f-financiamento"><option value="">Todos</option><option value="1">Aceita</option><option value="0">Não aceita</option></select></div>
+      <div class="campo"><label for="f-busca">Bairro ou endereço</label><input id="f-busca" type="search" placeholder="Ex.: Centro"></div>
+      <div class="campo campo-check"><input id="f-monitoradas" type="checkbox"><label for="f-monitoradas">Só cidades monitoradas</label></div>
+    </div>
+    <div class="filtros-rodape">
+      <span class="contagem" id="contagem" aria-live="polite"></span>
+      <span id="chips"></span>
+      <button class="btn-link" id="limpar" type="button" hidden>Limpar filtros</button>
+    </div>
+  </section>
+
+  <section class="kpis" aria-label="Métricas gerais">
+    <div class="card kpi hero"><div class="rotulo">Imóveis</div><div class="valor" id="k-total">–</div><div class="detalhe" id="k-total-d"></div></div>
+    <div class="card kpi"><div class="rotulo">Preço mediano</div><div class="valor" id="k-preco">–</div><div class="detalhe" id="k-preco-d"></div></div>
+    <div class="card kpi"><div class="rotulo">Desconto mediano</div><div class="valor" id="k-desconto">–</div><div class="detalhe" id="k-desconto-d"></div></div>
+    <div class="card kpi"><div class="rotulo">Preço mediano por m²</div><div class="valor" id="k-m2">–</div><div class="detalhe" id="k-m2-d"></div></div>
+    <div class="card kpi"><div class="rotulo">Aceitam financiamento</div><div class="valor" id="k-fin">–</div><div class="detalhe" id="k-fin-d"></div></div>
+  </section>
+
+  <section class="graficos">
+    <div class="card grafico"><h2>Imóveis por estado</h2><p class="sub" id="g-uf-sub">Clique em um estado para filtrar</p><div id="g-uf"></div></div>
+    <div class="card grafico"><h2>Cidades com mais imóveis</h2><p class="sub">As 15 primeiras · clique para filtrar</p><div id="g-cidade"></div></div>
+    <div class="card grafico"><h2>Imóveis por modalidade de venda</h2><p class="sub">Clique para filtrar</p><div id="g-modalidade"></div></div>
+    <div class="card grafico"><h2>Imóveis por faixa de desconto</h2><p class="sub">Desconto sobre o valor de avaliação</p><div id="g-desconto"></div></div>
+  </section>
+
+  <section class="card tabela-card" aria-label="Lista de imóveis">
+    <div class="tabela-topo">
+      <h2>Imóveis</h2>
+      <button class="btn" id="exportar" type="button">Exportar CSV</button>
+    </div>
+    <div class="tabela-rolagem">
+      <table>
+        <thead><tr id="cabecalho"></tr></thead>
+        <tbody id="linhas"></tbody>
+      </table>
+    </div>
+    <div class="paginacao">
+      <div id="pag-info"></div>
+      <div class="grupo">
+        <label for="pag-tamanho">Por página</label>
+        <select id="pag-tamanho"><option>25</option><option selected>50</option><option>100</option></select>
+        <button class="btn" id="pag-ant" type="button" aria-label="Página anterior">‹ Anterior</button>
+        <button class="btn" id="pag-prox" type="button" aria-label="Próxima página">Próxima ›</button>
+      </div>
+    </div>
+  </section>
+
+  <footer id="rodape"></footer>
+</div>
+<div id="dica" role="tooltip"></div>
+
+<script>
+const DADOS = /*__DADOS_PAINEL__*/null;
+
+(function () {
+  "use strict";
+  if (!DADOS) { document.body.textContent = "Sem dados para exibir."; return; }
+
+  const C = DADOS.col, D = DADOS.dic, N = DADOS.total;
+  const LINK = "https://venda-imoveis.caixa.gov.br/sistema/detalhe-imovel.asp?hdnimovel=";
+  const fmtInt = new Intl.NumberFormat("pt-BR");
+  const fmtMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+  const fmtMoedaCompacta = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
+  const fmtPct = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- Índices auxiliares ----------
+  const chaveCidade = new Array(N);
+  for (let i = 0; i < N; i++) chaveCidade[i] = C.uf[i] + "|" + C.cidade[i];
+  const monitoradasTexto = new Set((DADOS.monitoradas || []).map((p) => p[0] + "|" + p[1]));
+  const monitorada = new Uint8Array(N);
+  for (let i = 0; i < N; i++) {
+    if (monitoradasTexto.has(D.uf[C.uf[i]] + "|" + D.cidade[C.cidade[i]])) monitorada[i] = 1;
+  }
+  const textoBusca = new Array(N);
+  const normalizar = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+  for (let i = 0; i < N; i++) textoBusca[i] = normalizar(D.bairro[C.bairro[i]] + " " + C.endereco[i]);
+
+  // ---------- Estado dos filtros ----------
+  const filtros = { uf: "", cidade: "", tipo: "", modalidade: "", preco: "", desconto: "", quartos: "", financiamento: "", busca: "", monitoradas: false };
+
+  function passa(i, ignorar) {
+    const f = filtros;
+    if (f.uf !== "" && ignorar !== "uf" && C.uf[i] !== +f.uf) return false;
+    if (f.cidade !== "" && ignorar !== "cidade" && chaveCidade[i] !== f.cidade) return false;
+    if (f.tipo !== "" && C.tipo[i] !== +f.tipo) return false;
+    if (f.modalidade !== "" && ignorar !== "modalidade" && C.modalidade[i] !== +f.modalidade) return false;
+    if (f.preco !== "" && !(C.preco[i] !== null && C.preco[i] <= +f.preco)) return false;
+    if (f.desconto !== "" && ignorar !== "desconto" && !(C.desconto[i] !== null && C.desconto[i] >= +f.desconto)) return false;
+    if (f.quartos !== "" && !(C.quartos[i] !== null && C.quartos[i] >= +f.quartos)) return false;
+    if (f.financiamento !== "" && C.financiamento[i] !== +f.financiamento) return false;
+    if (f.monitoradas && !monitorada[i]) return false;
+    if (f.busca && textoBusca[i].indexOf(f.busca) === -1) return false;
+    return true;
+  }
+  function indices(ignorar) {
+    const out = [];
+    for (let i = 0; i < N; i++) if (passa(i, ignorar)) out.push(i);
+    return out;
+  }
+
+  // ---------- Opções dos selects ----------
+  function opcoes(select, itens, rotuloTodos) {
+    const atual = select.value;
+    select.textContent = "";
+    const o = document.createElement("option");
+    o.value = ""; o.textContent = rotuloTodos; select.appendChild(o);
+    for (const [valor, rotulo] of itens) {
+      const op = document.createElement("option");
+      op.value = valor; op.textContent = rotulo; select.appendChild(op);
+    }
+    select.value = itens.some(([v]) => String(v) === atual) ? atual : "";
+  }
+  const ordemAlfa = (a, b) => a[1].localeCompare(b[1], "pt-BR");
+  function contarPor(coluna, idx) {
+    const m = new Map();
+    for (const i of idx) m.set(coluna[i], (m.get(coluna[i]) || 0) + 1);
+    return m;
+  }
+  function preencherSelectsFixos() {
+    const todos = Array.from({ length: N }, (_, i) => i);
+    const porUf = contarPor(C.uf, todos);
+    opcoes($("f-uf"), [...porUf.keys()].map((k) => [k, D.uf[k]]).sort(ordemAlfa), "Todos");
+    const porTipo = contarPor(C.tipo, todos);
+    opcoes($("f-tipo"), [...porTipo.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => [k, D.tipo[k]]), "Todos");
+    const porMod = contarPor(C.modalidade, todos);
+    opcoes($("f-modalidade"), [...porMod.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => [k, D.modalidade[k]]), "Todas");
+  }
+  function preencherCidades() {
+    const m = new Map();
+    for (let i = 0; i < N; i++) {
+      if (filtros.uf !== "" && C.uf[i] !== +filtros.uf) continue;
+      if (filtros.monitoradas && !monitorada[i]) continue;
+      if (!m.has(chaveCidade[i])) m.set(chaveCidade[i], D.cidade[C.cidade[i]] + (filtros.uf === "" ? "/" + D.uf[C.uf[i]] : ""));
+    }
+    opcoes($("f-cidade"), [...m.entries()].sort(ordemAlfa), "Todas");
+    filtros.cidade = $("f-cidade").value;
+  }
+
+  // ---------- Estatísticas ----------
+  function mediana(valores) {
+    if (!valores.length) return null;
+    valores.sort((a, b) => a - b);
+    const meio = valores.length >> 1;
+    return valores.length % 2 ? valores[meio] : (valores[meio - 1] + valores[meio]) / 2;
+  }
+  function renderKpis(idx) {
+    const precos = [], descontos = [], m2 = [];
+    let fin = 0, finConhecido = 0;
+    const cidades = new Set();
+    for (const i of idx) {
+      if (C.preco[i] !== null) precos.push(C.preco[i]);
+      if (C.desconto[i] !== null) descontos.push(C.desconto[i]);
+      if (C.preco[i] !== null && C.area[i]) m2.push(C.preco[i] / C.area[i]);
+      if (C.financiamento[i] !== null) { finConhecido++; fin += C.financiamento[i]; }
+      cidades.add(chaveCidade[i]);
+    }
+    $("k-total").textContent = fmtInt.format(idx.length);
+    $("k-total-d").textContent = idx.length === N ? "em " + fmtInt.format(cidades.size) + " cidades"
+      : fmtInt.format(cidades.size) + " cidades · " + fmtPct.format(idx.length / N * 100) + "% do total";
+    const pm = mediana(precos);
+    $("k-preco").textContent = pm === null ? "–" : fmtMoedaCompacta.format(pm);
+    $("k-preco-d").textContent = precos.length ? "metade custa até " + fmtMoeda.format(pm) : "";
+    const dm = mediana(descontos);
+    $("k-desconto").textContent = dm === null ? "–" : fmtPct.format(dm) + "%";
+    const acima40 = descontos.filter((d) => d >= 40).length;
+    $("k-desconto-d").textContent = descontos.length ? fmtInt.format(acima40) + " com 40% ou mais" : "";
+    const mm2 = mediana(m2);
+    $("k-m2").textContent = mm2 === null ? "–" : fmtMoeda.format(mm2);
+    $("k-m2-d").textContent = m2.length ? "com área informada (" + fmtInt.format(m2.length) + ")" : "sem área informada";
+    $("k-fin").textContent = finConhecido ? fmtPct.format(fin / finConhecido * 100) + "%" : "–";
+    $("k-fin-d").textContent = finConhecido ? fmtInt.format(fin) + " imóveis" : "";
+  }
+
+  // ---------- Dica (tooltip) ----------
+  const dica = $("dica");
+  function mostrarDica(alvo, titulo, texto, evento) {
+    dica.innerHTML = "";
+    const t = document.createElement("strong"); t.textContent = titulo;
+    const s = document.createElement("span"); s.textContent = texto;
+    dica.append(t, s);
+    dica.style.display = "block";
+    let x, y;
+    if (evento && evento.clientX) { x = evento.clientX + 14; y = evento.clientY + 14; }
+    else { const r = alvo.getBoundingClientRect(); x = r.left + 8; y = r.bottom + 6; }
+    const w = dica.offsetWidth, h = dica.offsetHeight;
+    if (x + w > window.innerWidth - 8) x = window.innerWidth - w - 8;
+    if (y + h > window.innerHeight - 8) y = (evento && evento.clientY ? evento.clientY : y) - h - 14;
+    dica.style.left = Math.max(8, x) + "px"; dica.style.top = Math.max(8, y) + "px";
+  }
+  function esconderDica() { dica.style.display = "none"; }
+  function ligarDica(el, titulo, texto) {
+    el.addEventListener("mousemove", (e) => mostrarDica(el, titulo, texto, e));
+    el.addEventListener("mouseleave", esconderDica);
+    el.addEventListener("focus", () => mostrarDica(el, titulo, texto));
+    el.addEventListener("blur", esconderDica);
+  }
+
+  // ---------- Gráficos ----------
+  function barrasHorizontais(container, itens, total, selecionado, aoClicar, rolavel) {
+    container.textContent = "";
+    if (!itens.length) { const v = document.createElement("div"); v.className = "vazio"; v.textContent = "Nenhum imóvel com esses filtros."; container.appendChild(v); return; }
+    const grade = document.createElement("div");
+    grade.className = "barras" + (rolavel ? " rolavel" : "");
+    const max = itens[0].valor;
+    for (const item of itens) {
+      const rot = document.createElement("div");
+      rot.className = "barra-rotulo"; rot.textContent = item.rotulo; rot.title = item.rotulo;
+      const botao = document.createElement("button");
+      botao.type = "button"; botao.className = "barra-botao";
+      if (selecionado !== "" && String(item.chave) !== String(selecionado)) botao.classList.add("apagada");
+      const pct = total ? item.valor / total * 100 : 0;
+      botao.setAttribute("aria-label", item.rotulo + ": " + fmtInt.format(item.valor) + " imóveis (" + fmtPct.format(pct) + "%)");
+      const marca = document.createElement("span");
+      marca.className = "barra-marca";
+      marca.style.width = "calc((100% - 56px) * " + (item.valor / max).toFixed(4) + ")";
+      const val = document.createElement("span");
+      val.className = "barra-valor"; val.textContent = fmtInt.format(item.valor);
+      botao.append(marca, val);
+      ligarDica(botao, item.rotulo, fmtInt.format(item.valor) + " imóveis · " + fmtPct.format(pct) + "% da seleção");
+      botao.addEventListener("click", () => { esconderDica(); aoClicar(item.chave); });
+      grade.append(rot, botao);
+    }
+    container.appendChild(grade);
+  }
+
+  const FAIXAS = [[0, 10, "0–10%"], [10, 20, "10–20%"], [20, 30, "20–30%"], [30, 40, "30–40%"], [40, 50, "40–50%"], [50, 60, "50–60%"], [60, 101, "60%+"]];
+  function colunasDesconto(container, idx) {
+    container.textContent = "";
+    const contagens = FAIXAS.map(() => 0);
+    let semInfo = 0;
+    for (const i of idx) {
+      const d = C.desconto[i];
+      if (d === null) { semInfo++; continue; }
+      const k = FAIXAS.findIndex(([a, b]) => d >= a && d < b);
+      contagens[k === -1 ? FAIXAS.length - 1 : k]++;
+    }
+    const total = contagens.reduce((a, b) => a + b, 0);
+    if (!total) { const v = document.createElement("div"); v.className = "vazio"; v.textContent = "Nenhum imóvel com desconto informado."; container.appendChild(v); return; }
+    const max = Math.max(...contagens);
+    const cols = document.createElement("div"); cols.className = "colunas";
+    const rots = document.createElement("div"); rots.className = "colunas-rotulos";
+    FAIXAS.forEach(([, , rotulo], k) => {
+      const col = document.createElement("div");
+      col.className = "coluna"; col.tabIndex = 0;
+      const pct = contagens[k] / total * 100;
+      col.setAttribute("aria-label", "Desconto " + rotulo + ": " + fmtInt.format(contagens[k]) + " imóveis");
+      const v = document.createElement("span"); v.className = "coluna-valor"; v.textContent = fmtInt.format(contagens[k]);
+      const m = document.createElement("span"); m.className = "coluna-marca";
+      m.style.height = "calc((100% - 20px) * " + (max ? contagens[k] / max : 0).toFixed(4) + ")";
+      col.append(v, m);
+      ligarDica(col, "Desconto " + rotulo, fmtInt.format(contagens[k]) + " imóveis · " + fmtPct.format(pct) + "%");
+      cols.appendChild(col);
+      const r = document.createElement("span"); r.textContent = rotulo; rots.appendChild(r);
+    });
+    container.append(cols, rots);
+    if (semInfo) {
+      const s = document.createElement("p"); s.className = "sub"; s.style.margin = "8px 0 0";
+      s.textContent = fmtInt.format(semInfo) + " imóveis sem desconto informado não aparecem aqui.";
+      container.appendChild(s);
+    }
+  }
+
+  function renderGraficos() {
+    // Cada gráfico ignora o próprio filtro, para continuar mostrando as alternativas
+    const idxUf = indices("uf");
+    const porUf = [...contarPor(C.uf, idxUf).entries()].sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => ({ chave: k, rotulo: D.uf[k], valor: v }));
+    barrasHorizontais($("g-uf"), porUf, idxUf.length, filtros.uf, (k) => definirFiltro("uf", String(k) === filtros.uf ? "" : String(k)), porUf.length > 14);
+    $("g-uf-sub").textContent = "Clique em um estado para filtrar" + (porUf.length > 14 ? " · role para ver os " + porUf.length : "");
+
+    const idxCid = indices("cidade");
+    const porCid = [...contarPor(chaveCidade, idxCid).entries()].sort((a, b) => b[1] - a[1]).slice(0, 15)
+      .map(([k, v]) => { const [u, c] = k.split("|"); return { chave: k, rotulo: D.cidade[+c] + "/" + D.uf[+u], valor: v }; });
+    barrasHorizontais($("g-cidade"), porCid, idxCid.length, filtros.cidade, (k) => definirCidade(k === filtros.cidade ? "" : k), false);
+
+    const idxMod = indices("modalidade");
+    const porMod = [...contarPor(C.modalidade, idxMod).entries()].sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => ({ chave: k, rotulo: D.modalidade[k], valor: v }));
+    barrasHorizontais($("g-modalidade"), porMod, idxMod.length, filtros.modalidade, (k) => definirFiltro("modalidade", String(k) === filtros.modalidade ? "" : String(k)), false);
+
+    colunasDesconto($("g-desconto"), indices("desconto"));
+  }
+
+  // ---------- Tabela ----------
+  const COLUNAS = [
+    { id: "cidade", rotulo: "Cidade", valor: (i) => D.cidade[C.cidade[i]] + "/" + D.uf[C.uf[i]] },
+    { id: "bairro", rotulo: "Bairro", valor: (i) => D.bairro[C.bairro[i]], trunc: true },
+    { id: "tipo", rotulo: "Tipo", valor: (i) => D.tipo[C.tipo[i]] },
+    { id: "quartos", rotulo: "Quartos", num: true, valor: (i) => C.quartos[i], fmt: (v) => v === null ? "–" : v },
+    { id: "area", rotulo: "Área (m²)", num: true, valor: (i) => C.area[i], fmt: (v) => v === null ? "–" : fmtInt.format(Math.round(v)) },
+    { id: "preco", rotulo: "Preço", num: true, valor: (i) => C.preco[i], fmt: (v) => v === null ? "–" : fmtMoeda.format(v) },
+    { id: "avaliacao", rotulo: "Avaliação", num: true, valor: (i) => C.avaliacao[i], fmt: (v) => v === null ? "–" : fmtMoeda.format(v) },
+    { id: "desconto", rotulo: "Desconto", num: true, valor: (i) => C.desconto[i], fmt: (v) => v === null ? "–" : fmtPct.format(v) + "%" },
+    { id: "financiamento", rotulo: "Financ.", valor: (i) => C.financiamento[i], fmt: (v) => v === 1 ? "Sim" : v === 0 ? "Não" : "–" },
+    { id: "modalidade", rotulo: "Modalidade", valor: (i) => D.modalidade[C.modalidade[i]], trunc: true },
+    { id: "endereco", rotulo: "Endereço", valor: (i) => C.endereco[i], trunc: true },
+  ];
+  const tabela = { ordem: "desconto", dir: -1, pagina: 0, tamanho: 50 };
+  let atuais = [];
+
+  function renderCabecalho() {
+    const tr = $("cabecalho"); tr.textContent = "";
+    for (const col of COLUNAS) {
+      const th = document.createElement("th");
+      if (col.num) th.className = "num";
+      th.setAttribute("aria-sort", tabela.ordem === col.id ? (tabela.dir === 1 ? "ascending" : "descending") : "none");
+      const b = document.createElement("button"); b.type = "button"; b.textContent = col.rotulo;
+      b.addEventListener("click", () => {
+        if (tabela.ordem === col.id) tabela.dir = -tabela.dir; else { tabela.ordem = col.id; tabela.dir = col.num ? -1 : 1; }
+        tabela.pagina = 0; ordenar(); renderCabecalho(); renderLinhas();
+      });
+      th.appendChild(b); tr.appendChild(th);
+    }
+    const th = document.createElement("th"); th.textContent = "Link"; tr.appendChild(th);
+  }
+  function ordenar() {
+    const col = COLUNAS.find((c) => c.id === tabela.ordem);
+    const dir = tabela.dir;
+    const chaves = new Map(atuais.map((i) => [i, col.valor(i)]));
+    atuais.sort((a, b) => {
+      const va = chaves.get(a), vb = chaves.get(b);
+      if (va === null || va === undefined) return (vb === null || vb === undefined) ? 0 : 1;
+      if (vb === null || vb === undefined) return -1;
+      if (typeof va === "number") return (va - vb) * dir;
+      return String(va).localeCompare(String(vb), "pt-BR") * dir;
+    });
+  }
+  function renderLinhas() {
+    const corpo = $("linhas"); corpo.textContent = "";
+    const total = atuais.length, paginas = Math.max(1, Math.ceil(total / tabela.tamanho));
+    tabela.pagina = Math.min(tabela.pagina, paginas - 1);
+    const inicio = tabela.pagina * tabela.tamanho;
+    const frag = document.createDocumentFragment();
+    for (const i of atuais.slice(inicio, inicio + tabela.tamanho)) {
+      const tr = document.createElement("tr");
+      for (const col of COLUNAS) {
+        const td = document.createElement("td");
+        const v = col.valor(i);
+        td.textContent = col.fmt ? col.fmt(v) : (v || "–");
+        if (col.num) td.className = "num";
+        if (col.trunc) { td.classList.add("trunc"); td.title = v || ""; }
+        if (col.id === "cidade" && monitorada[i]) {
+          const ponto = document.createElement("span"); ponto.className = "monitorada"; ponto.title = "Cidade monitorada";
+          td.prepend(ponto);
+        }
+        tr.appendChild(td);
+      }
+      const td = document.createElement("td");
+      const a = document.createElement("a"); a.href = LINK + encodeURIComponent(C.id[i]); a.target = "_blank"; a.rel = "noopener";
+      a.textContent = "Ver na Caixa"; td.appendChild(a); tr.appendChild(td);
+      frag.appendChild(tr);
+    }
+    corpo.appendChild(frag);
+    if (!total) {
+      const tr = document.createElement("tr"); const td = document.createElement("td");
+      td.colSpan = COLUNAS.length + 1; td.className = "vazio"; td.textContent = "Nenhum imóvel com esses filtros.";
+      tr.appendChild(td); corpo.appendChild(tr);
+    }
+    $("pag-info").textContent = total ? (fmtInt.format(inicio + 1) + "–" + fmtInt.format(Math.min(inicio + tabela.tamanho, total)) + " de " + fmtInt.format(total)) : "0 imóveis";
+    $("pag-ant").disabled = tabela.pagina === 0;
+    $("pag-prox").disabled = tabela.pagina >= paginas - 1;
+  }
+
+  // ---------- Exportar ----------
+  function exportarCsv() {
+    const cab = COLUNAS.map((c) => c.rotulo).concat("Link");
+    const linhas = [cab.join(";")];
+    const celula = (s) => { s = String(s); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    for (const i of atuais) {
+      const vals = COLUNAS.map((c) => {
+        const v = c.valor(i);
+        if (v === null || v === undefined) return "";
+        if (c.id === "financiamento") return v === 1 ? "Sim" : "Não";
+        if (typeof v === "number") return String(v).replace(".", ",");
+        return v;
+      });
+      vals.push(LINK + C.id[i]);
+      linhas.push(vals.map(celula).join(";"));
+    }
+    const blob = new Blob(["﻿" + linhas.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "imoveis_caixa_filtrados.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // ---------- Chips de filtros ativos ----------
+  function textoSelect(id) { const s = $(id); return s.options[s.selectedIndex] ? s.options[s.selectedIndex].text : ""; }
+  function renderChips() {
+    const chips = $("chips"); chips.textContent = "";
+    const ativos = [];
+    if (filtros.uf !== "") ativos.push(["uf", "Estado: " + textoSelect("f-uf")]);
+    if (filtros.cidade !== "") ativos.push(["cidade", "Cidade: " + textoSelect("f-cidade")]);
+    if (filtros.tipo !== "") ativos.push(["tipo", "Tipo: " + textoSelect("f-tipo")]);
+    if (filtros.modalidade !== "") ativos.push(["modalidade", textoSelect("f-modalidade")]);
+    if (filtros.preco !== "") ativos.push(["preco", "Até " + fmtMoeda.format(+filtros.preco)]);
+    if (filtros.desconto !== "") ativos.push(["desconto", "Desconto " + textoSelect("f-desconto")]);
+    if (filtros.quartos !== "") ativos.push(["quartos", "Quartos: " + textoSelect("f-quartos")]);
+    if (filtros.financiamento !== "") ativos.push(["financiamento", "Financiamento: " + textoSelect("f-financiamento")]);
+    if (filtros.busca) ativos.push(["busca", "Busca: " + $("f-busca").value.trim()]);
+    if (filtros.monitoradas) ativos.push(["monitoradas", "Só monitoradas"]);
+    for (const [chave, rotulo] of ativos) {
+      const b = document.createElement("button"); b.type = "button"; b.className = "chip";
+      b.setAttribute("aria-label", "Remover filtro " + rotulo);
+      const t = document.createElement("span"); t.textContent = rotulo;
+      const x = document.createElement("span"); x.setAttribute("aria-hidden", "true"); x.textContent = "×";
+      b.append(t, x);
+      b.addEventListener("click", () => limparFiltro(chave));
+      chips.appendChild(b); chips.append(" ");
+    }
+    $("limpar").hidden = ativos.length === 0;
+  }
+
+  // ---------- Atualização ----------
+  function atualizar() {
+    atuais = indices(null);
+    $("contagem").textContent = fmtInt.format(atuais.length) + " de " + fmtInt.format(N) + " imóveis";
+    renderKpis(atuais);
+    renderGraficos();
+    ordenar();
+    tabela.pagina = 0;
+    renderLinhas();
+    renderChips();
+  }
+  function definirFiltro(chave, valor) {
+    filtros[chave] = valor;
+    const el = $("f-" + chave);
+    if (el) { if (el.type === "checkbox") el.checked = !!valor; else el.value = valor; }
+    if (chave === "uf" || chave === "monitoradas") preencherCidades();
+    atualizar();
+  }
+  function definirCidade(chave) {
+    if (chave && filtros.uf !== "" && chave.split("|")[0] !== filtros.uf) filtros.uf = "";
+    $("f-uf").value = filtros.uf;
+    preencherCidades();
+    $("f-cidade").value = chave;
+    filtros.cidade = $("f-cidade").value;
+    atualizar();
+  }
+  function limparFiltro(chave) {
+    if (chave === "busca") { $("f-busca").value = ""; filtros.busca = ""; atualizar(); return; }
+    definirFiltro(chave, chave === "monitoradas" ? false : "");
+  }
+
+  // ---------- Eventos ----------
+  $("f-uf").addEventListener("change", (e) => definirFiltro("uf", e.target.value));
+  $("f-cidade").addEventListener("change", (e) => { filtros.cidade = e.target.value; atualizar(); });
+  for (const chave of ["tipo", "modalidade", "desconto", "quartos", "financiamento"]) {
+    $("f-" + chave).addEventListener("change", (e) => { filtros[chave] = e.target.value; atualizar(); });
+  }
+  let espera;
+  $("f-preco").addEventListener("input", (e) => {
+    clearTimeout(espera);
+    espera = setTimeout(() => { const v = e.target.value.trim(); filtros.preco = v && +v > 0 ? v : ""; atualizar(); }, 250);
+  });
+  $("f-busca").addEventListener("input", (e) => {
+    clearTimeout(espera);
+    espera = setTimeout(() => { filtros.busca = normalizar(e.target.value.trim()); atualizar(); }, 250);
+  });
+  $("f-monitoradas").addEventListener("change", (e) => definirFiltro("monitoradas", e.target.checked));
+  $("limpar").addEventListener("click", () => {
+    Object.assign(filtros, { uf: "", cidade: "", tipo: "", modalidade: "", preco: "", desconto: "", quartos: "", financiamento: "", busca: "", monitoradas: false });
+    for (const id of ["f-uf", "f-tipo", "f-modalidade", "f-preco", "f-desconto", "f-quartos", "f-financiamento", "f-busca"]) $(id).value = "";
+    $("f-monitoradas").checked = false;
+    preencherCidades(); atualizar();
+  });
+  $("pag-ant").addEventListener("click", () => { tabela.pagina--; renderLinhas(); });
+  $("pag-prox").addEventListener("click", () => { tabela.pagina++; renderLinhas(); });
+  $("pag-tamanho").addEventListener("change", (e) => { tabela.tamanho = +e.target.value; tabela.pagina = 0; renderLinhas(); });
+  $("exportar").addEventListener("click", exportarCsv);
+  window.addEventListener("scroll", esconderDica, { passive: true });
+
+  // ---------- Tema ----------
+  const raiz = document.documentElement;
+  function temaAtual() {
+    return raiz.dataset.theme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  }
+  try { const salvo = localStorage.getItem("painel-caixa-tema"); if (salvo) raiz.dataset.theme = salvo; } catch (e) { /* sem armazenamento */ }
+  function rotuloTema() { $("tema").textContent = temaAtual() === "dark" ? "Tema claro" : "Tema escuro"; }
+  $("tema").addEventListener("click", () => {
+    raiz.dataset.theme = temaAtual() === "dark" ? "light" : "dark";
+    try { localStorage.setItem("painel-caixa-tema", raiz.dataset.theme); } catch (e) { /* sem armazenamento */ }
+    rotuloTema();
+  });
+  rotuloTema();
+
+  // ---------- Início ----------
+  $("subtitulo").textContent = (DADOS.data_lista ? "Lista oficial de " + DADOS.data_lista + " · " : "") + fmtInt.format(N) + " imóveis à venda";
+  $("rodape").textContent = "Painel gerado em " + DADOS.gerado_em + " a partir da lista oficial da Caixa (venda-imoveis.caixa.gov.br). "
+    + "Desconto = diferença entre o preço de venda e o valor de avaliação. Confira sempre os dados no site da Caixa antes de qualquer decisão.";
+  if (!monitoradasTexto.size) $("f-monitoradas").closest(".campo").hidden = true;
+  preencherSelectsFixos();
+  preencherCidades();
+  renderCabecalho();
+  atualizar();
+})();
+</script>
+</body>
+</html>

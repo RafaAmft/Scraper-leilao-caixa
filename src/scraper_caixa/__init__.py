@@ -20,7 +20,10 @@ from .csv_loader import (
     carregar_csv_caixa,
     filtrar_imoveis_csv,
     obter_csv_caixa,
+    carregar_ou_baixar_csv,
+    filtrar_cidades_configuradas,
 )
+from .painel import gerar_painel_html
 from .gmail_oauth import enviar_email_oauth, obter_servico_gmail
 try:
     from .driver import configurar_chromedriver
@@ -65,6 +68,10 @@ __all__ = [
     "filtrar_imoveis_csv",
     "buscar_imoveis_csv",
     "obter_csv_caixa",
+    "carregar_ou_baixar_csv",
+    "filtrar_cidades_configuradas",
+    # Painel
+    "gerar_painel_html",
     # Gmail OAuth2
     "obter_servico_gmail",
     "enviar_email_oauth",

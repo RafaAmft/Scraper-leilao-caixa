@@ -17,6 +17,7 @@ setup(
     url="",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
+    package_data={"scraper_caixa": ["templates/*.html"]},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
