@@ -91,6 +91,32 @@ Se mesmo assim for bloqueado, baixe o arquivo manualmente em
 
 Outras opções: `--perfil-navegador <pasta>`, `--pasta-downloads <pasta>`.
 
+### ⏰ Execução diária no Windows (Agendador de Tarefas)
+
+O GitHub Actions é bloqueado pela proteção da Caixa, então a rotina diária roda no seu PC.
+
+1. Rode uma vez manualmente e confira o envio do e-mail:
+   ```powershell
+   python scraper_automatico.py --metodo navegador --headless
+   ```
+   (se pedir credencial do Gmail: `python scraper_automatico.py --auth-gmail`)
+2. Crie a tarefa diária (horário opcional, padrão 08:00):
+   ```powershell
+   scripts\criar_tarefa_agendada.bat 08:00
+   ```
+3. Teste na hora: `schtasks /Run /TN "Scraper Leilao Caixa"` e veja `logs\agendador.log`.
+
+A tarefa executa `scripts\agendar_scraper.bat`, que roda
+`scraper_automatico.py --metodo auto --headless` (usando `.venv` ou `venv` do projeto, se
+existir) e grava toda a saída em `logs\agendador.log`. Ela roda com o seu usuário conectado;
+se o PC estiver desligado no horário, roda assim que for ligado. Uma janela de console
+aparece rapidamente durante a execução.
+
+Se um dia o log mostrar bloqueio (cookies da Caixa expirados), rode uma vez com janela
+(`python scraper_automatico.py --metodo navegador --sem-email`) para renová-los.
+
+Para remover a tarefa: `schtasks /Delete /TN "Scraper Leilao Caixa" /F`.
+
 ### 🔧 Configuração Interativa
 ```bash
 # Menu com opções
