@@ -19,6 +19,7 @@ from .csv_loader import (
     buscar_imoveis_csv,
     carregar_csv_caixa,
     filtrar_imoveis_csv,
+    obter_csv_caixa,
 )
 from .gmail_oauth import enviar_email_oauth, obter_servico_gmail
 try:
@@ -63,6 +64,7 @@ __all__ = [
     "carregar_csv_caixa",
     "filtrar_imoveis_csv",
     "buscar_imoveis_csv",
+    "obter_csv_caixa",
     # Gmail OAuth2
     "obter_servico_gmail",
     "enviar_email_oauth",

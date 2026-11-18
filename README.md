@@ -56,6 +56,35 @@ python scraper_automatico.py
 - Busca imóveis em todas as cidades configuradas
 - Gera relatórios e envia para todos os destinatários cadastrados
 
+### 🛡️ Download do CSV (proteção Radware da Caixa)
+
+O site da Caixa usa o **Radware Bot Manager**, que bloqueia downloads feitos por scripts
+(inclusive no GitHub Actions). Por isso o script tenta, em ordem (`--metodo auto`):
+
+1. **requests**: download HTTP direto (costuma ser bloqueado);
+2. **navegador**: Google Chrome real via Playwright, com perfil salvo em `navegador_perfil/`;
+3. **downloads**: o `Lista_imoveis_geral*.csv` mais recente (últimas 24h) da sua pasta Downloads.
+
+Preparação (uma vez):
+```bash
+pip install -r requirements.txt
+playwright install chromium   # só é necessário se o Google Chrome não estiver instalado
+```
+
+Primeira execução, **com a janela do navegador visível**:
+```bash
+python scraper_automatico.py --metodo navegador --sem-email
+```
+Se aparecer um captcha, resolva-o na janela; o download continua sozinho. Os cookies de
+liberação ficam salvos em `navegador_perfil/` (não versionado) e são reaproveitados nas
+próximas execuções, que podem rodar com `--headless`.
+
+Se mesmo assim for bloqueado, baixe o arquivo manualmente em
+<https://venda-imoveis.caixa.gov.br/sistema/download-lista.asp> e rode
+`python scraper_automatico.py` (ele encontra o CSV na pasta Downloads) ou use `--csv <caminho>`.
+
+Outras opções: `--perfil-navegador <pasta>`, `--pasta-downloads <pasta>`.
+
 ### 🔧 Configuração Interativa
 ```bash
 # Menu com opções

@@ -261,6 +261,8 @@ def _formatar_imovel_relatorio(indice: int, imovel: dict) -> str:
 def buscar_todas_cidades(
     caminho_csv: Optional[str] = None,
     enviar_email: bool = True,
+    metodo_download: str = "auto",
+    opcoes_download: Optional[dict] = None,
 ):
     """Baixa/lê o CSV oficial da Caixa e gera relatórios para todas as cidades configuradas.
 
@@ -283,6 +285,8 @@ def buscar_todas_cidades(
             config_cidades=config,
             caminho_csv=caminho_csv,
             baixar_se_necessario=caminho_csv is None,
+            metodo_download=metodo_download,
+            **(opcoes_download or {}),
         )
     except Exception as e:
         logger.error(f"❌ Erro ao processar CSV da Caixa: {e}")
@@ -383,6 +387,30 @@ def main():
         help="Gera os relatórios locais sem enviar e-mail.",
     )
     parser.add_argument(
+        "--metodo",
+        choices=["auto", "requests", "navegador", "downloads"],
+        default="auto",
+        help=(
+            "Como obter o CSV: 'requests' (HTTP direto), 'navegador' (Chrome real via Playwright), "
+            "'downloads' (CSV mais recente da pasta Downloads) ou 'auto' (tenta os três nessa ordem)."
+        ),
+    )
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="Abre o navegador sem janela (só funciona depois que o perfil já passou pelo captcha).",
+    )
+    parser.add_argument(
+        "--perfil-navegador",
+        default=None,
+        help="Pasta do perfil persistente do navegador (padrão: navegador_perfil).",
+    )
+    parser.add_argument(
+        "--pasta-downloads",
+        default=None,
+        help="Pasta onde procurar o CSV baixado manualmente (padrão: Downloads do usuário).",
+    )
+    parser.add_argument(
         "--auth-gmail",
         action="store_true",
         help="Executa apenas a autenticação OAuth2 do Gmail para gerar config/gmail_token.json.",
@@ -392,7 +420,17 @@ def main():
         obter_servico_gmail(DEFAULT_CREDENTIALS_PATH, DEFAULT_TOKEN_PATH)
         print(f"✅ Autenticação OAuth2 concluída! Token salvo em '{DEFAULT_TOKEN_PATH}'.")
         return
-    resultado = buscar_todas_cidades(caminho_csv=args.csv, enviar_email=not args.sem_email)
+    opcoes_download = {
+        "headless": args.headless,
+        "perfil_navegador": args.perfil_navegador,
+        "pasta_downloads": args.pasta_downloads,
+    }
+    resultado = buscar_todas_cidades(
+        caminho_csv=args.csv,
+        enviar_email=not args.sem_email,
+        metodo_download=args.metodo,
+        opcoes_download=opcoes_download,
+    )
     if resultado is None:
         sys.exit(1)
 

@@ -209,3 +209,6 @@ resultados/*
 # Arquivos específicos do projeto
 teste-simples-backup.yml
 scraper_output.log
+
+# Perfil do navegador usado para baixar o CSV da Caixa (contém cookies de sessão)
+navegador_perfil/
