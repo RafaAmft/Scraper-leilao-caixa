@@ -258,8 +258,12 @@ def _formatar_imovel_relatorio(indice: int, imovel: dict) -> str:
     return "\n".join(linhas)
 
 
-def gerar_e_abrir_painel(df, destino, data_geracao, config, abrir, logger) -> None:
-    """Gera o painel HTML; uma falha aqui não interrompe relatórios nem e-mail."""
+def gerar_e_abrir_painel(df, destino, data_geracao, config, abrir, logger, publicar=False) -> Optional[str]:
+    """Gera (e opcionalmente publica) o painel HTML.
+
+    Retorna a URL pública do painel, se publicado. Uma falha aqui não interrompe
+    relatórios nem e-mail.
+    """
     try:
         from scraper_caixa.painel import gerar_painel_html
 
@@ -271,6 +275,22 @@ def gerar_e_abrir_painel(df, destino, data_geracao, config, abrir, logger) -> No
             webbrowser.open(caminho.resolve().as_uri())
     except Exception as e:
         logger.error(f"⚠️ Não foi possível gerar o painel: {e}")
+        return None
+
+    if not publicar:
+        return None
+    try:
+        from scraper_caixa.publicacao import publicar_painel_github_pages
+
+        url = publicar_painel_github_pages(caminho, repo_dir=os.path.dirname(os.path.abspath(__file__)))
+        if url:
+            logger.info(f"🌐 Painel publicado no GitHub Pages: {url}")
+        else:
+            logger.info("🌐 Painel publicado (o remoto não é do GitHub, então não há link do Pages).")
+        return url
+    except Exception as e:
+        logger.error(f"⚠️ Não foi possível publicar o painel: {e}")
+        return None
 
 
 def buscar_todas_cidades(
@@ -280,6 +300,7 @@ def buscar_todas_cidades(
     opcoes_download: Optional[dict] = None,
     painel: Optional[str] = "painel_imoveis.html",
     abrir_painel: bool = False,
+    publicar_painel: bool = False,
 ):
     """Baixa/lê o CSV oficial da Caixa e gera relatórios para todas as cidades configuradas.
 
@@ -309,8 +330,11 @@ def buscar_todas_cidades(
         logger.error(f"❌ Erro ao processar CSV da Caixa: {e}")
         return None
 
+    link_painel = None
     if painel:
-        gerar_e_abrir_painel(df, painel, data_geracao, config, abrir_painel, logger)
+        link_painel = gerar_e_abrir_painel(
+            df, painel, data_geracao, config, abrir_painel, logger, publicar=publicar_painel
+        )
 
     if data_geracao:
         logger.info(f"🗓️ Data de geração da lista Caixa: {data_geracao}")
@@ -355,6 +379,9 @@ def buscar_todas_cidades(
         relatorio_resumido += " " + ", ".join(estados_com_imoveis) + "."
     else:
         relatorio_resumido += " nenhum imóvel nas cidades monitoradas."
+
+    if link_painel:
+        relatorio_resumido += f"\n\nPainel com todos os imóveis do Brasil e filtros: {link_painel}"
 
     info_lista = f"Lista Caixa gerada em: {data_geracao}\n" if data_geracao else ""
     relatorio_detalhado = f"""
@@ -454,6 +481,11 @@ def main():
         help="Abre o painel no navegador ao final.",
     )
     parser.add_argument(
+        "--publicar-painel",
+        action="store_true",
+        help="Publica o painel no GitHub Pages (branch gh-pages) e inclui o link no e-mail.",
+    )
+    parser.add_argument(
         "--auth-gmail",
         action="store_true",
         help="Executa apenas a autenticação OAuth2 do Gmail para gerar config/gmail_token.json.",
@@ -476,6 +508,7 @@ def main():
         opcoes_download=opcoes_download,
         painel=None if args.sem_painel else args.painel,
         abrir_painel=args.abrir_painel,
+        publicar_painel=args.publicar_painel and not args.sem_painel,
     )
     if resultado is None:
         sys.exit(1)

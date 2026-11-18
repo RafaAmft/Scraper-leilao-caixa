@@ -112,6 +112,24 @@ python scraper_automatico.py --csv dados_imoveis/Lista_imoveis_geral.csv --sem-e
 ```
 Opções: `--painel <arquivo>` (outro nome/pasta) e `--sem-painel` (não gera).
 
+### 🌐 Publicar o painel no GitHub Pages
+
+Com `--publicar-painel`, o painel é enviado para o branch **`gh-pages`** e fica disponível em
+`https://<usuario>.github.io/<repositorio>/` (link incluído no e-mail diário). O branch guarda
+só a versão mais recente (um commit novo, sem histórico, a cada publicação), então o
+repositório não cresce. O push usa as credenciais do git já configuradas no PC.
+
+Configuração (uma vez):
+1. Publique pela primeira vez:
+   ```powershell
+   python scraper_automatico.py --csv dados_imoveis\Lista_imoveis_geral.csv --sem-email --publicar-painel
+   ```
+2. No GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
+   branch **`gh-pages`**, pasta **`/ (root)`** → **Save**. Em 1–2 minutos o link fica no ar.
+
+A tarefa diária (`scripts\agendar_scraper.bat`) já publica automaticamente. O painel é
+público: qualquer pessoa com o link consegue vê-lo.
+
 ### ⏰ Execução diária no Windows (Agendador de Tarefas)
 
 O GitHub Actions é bloqueado pela proteção da Caixa, então a rotina diária roda no seu PC.
@@ -128,7 +146,7 @@ O GitHub Actions é bloqueado pela proteção da Caixa, então a rotina diária 
 3. Teste na hora: `schtasks /Run /TN "Scraper Leilao Caixa"` e veja `logs\agendador.log`.
 
 A tarefa executa `scripts\agendar_scraper.bat`, que roda
-`scraper_automatico.py --metodo auto --headless` (usando `.venv` ou `venv` do projeto, se
+`scraper_automatico.py --metodo auto --headless --publicar-painel` (usando `.venv` ou `venv` do projeto, se
 existir) e grava toda a saída em `logs\agendador.log`. Ela roda com o seu usuário conectado;
 se o PC estiver desligado no horário, roda assim que for ligado. Uma janela de console
 aparece rapidamente durante a execução.
