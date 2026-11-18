@@ -76,6 +76,8 @@
   --shadow: none;
 }
 * { box-sizing: border-box; }
+/* O atributo hidden precisa vencer os display: flex/grid das classes abaixo */
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body {
   background: var(--surface-0);
