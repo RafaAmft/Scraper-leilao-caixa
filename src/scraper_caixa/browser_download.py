@@ -55,16 +55,17 @@ def _importar_playwright():
     return sync_playwright
 
 
-def _abrir_contexto(playwright, perfil_dir: Path, headless: bool):
-    """Abre contexto persistente, preferindo o Google Chrome instalado."""
+# Remove o sinal mais óbvio de automação (navigator.webdriver = true)
+_ARGS_NAVEGADOR = ["--disable-blink-features=AutomationControlled"]
+DEFAULT_TIMEOUT_HEADLESS_S = 45
+# Abre a janela do Chrome fora da área visível: para o site é um navegador comum,
+# mas não atrapalha quem está usando o computador.
+_ARGS_JANELA_ESCONDIDA = ["--window-position=-32000,-32000"]
+
+
+def _lancar(playwright, opcoes: dict):
+    """Lança o contexto persistente, preferindo o Google Chrome instalado."""
     logger = get_logger("browser_download")
-    opcoes = dict(
-        user_data_dir=str(perfil_dir),
-        headless=headless,
-        accept_downloads=True,
-        viewport={"width": 1280, "height": 900},
-        locale="pt-BR",
-    )
     try:
         return playwright.chromium.launch_persistent_context(channel="chrome", **opcoes)
     except Exception as exc:  # Chrome não instalado: usa o Chromium do Playwright
@@ -72,12 +73,48 @@ def _abrir_contexto(playwright, perfil_dir: Path, headless: bool):
         return playwright.chromium.launch_persistent_context(**opcoes)
 
 
+def _abrir_contexto(playwright, perfil_dir: Path, headless: bool, janela_escondida: bool = False):
+    """Abre contexto persistente com aparência de navegador comum.
+
+    No modo headless o Chrome se identifica como ``HeadlessChrome`` no User-Agent,
+    o que a Radware detecta; além disso, os cookies de liberação obtidos com janela
+    ficam associados ao User-Agent normal. Por isso, em headless, o contexto é
+    reaberto com o mesmo User-Agent do Chrome com janela.
+    """
+    logger = get_logger("browser_download")
+    opcoes = dict(
+        user_data_dir=str(perfil_dir),
+        headless=headless,
+        accept_downloads=True,
+        viewport={"width": 1280, "height": 900},
+        locale="pt-BR",
+        args=list(_ARGS_NAVEGADOR) + (list(_ARGS_JANELA_ESCONDIDA) if janela_escondida and not headless else []),
+    )
+    contexto = _lancar(playwright, opcoes)
+    if not headless:
+        return contexto
+
+    try:
+        pagina = contexto.pages[0] if contexto.pages else contexto.new_page()
+        user_agent = pagina.evaluate("navigator.userAgent")
+    except Exception:
+        return contexto
+    if "HeadlessChrome" not in user_agent:
+        return contexto
+
+    contexto.close()
+    opcoes["user_agent"] = user_agent.replace("HeadlessChrome", "Chrome")
+    logger.info("Modo headless: usando o User-Agent do Chrome com janela.")
+    return _lancar(playwright, opcoes)
+
+
 def baixar_csv_com_navegador(
     destino: Union[Path, str],
     perfil_dir: Union[Path, str] = DEFAULT_PERFIL_DIR,
     headless: bool = False,
-    timeout_s: int = DEFAULT_TIMEOUT_S,
+    timeout_s: Optional[int] = None,
     url: str = CAIXA_CSV_URL,
+    janela_escondida: bool = False,
     pagina_inicial: Optional[str] = CAIXA_PAGINA_DOWNLOAD_URL,
 ) -> Path:
     """Baixa o CSV da Caixa com um navegador real e salva em ``destino``.
@@ -89,7 +126,8 @@ def baixar_csv_com_navegador(
          do navegador (sem depender do mecanismo de download do Chromium).
       3. Se ainda vier bloqueado, navega até o CSV na própria aba: com
          ``headless=False``, resolva o captcha na janela e o download começa sozinho.
-         O script espera até ``timeout_s`` segundos e, se o download do navegador
+         O script espera até ``timeout_s`` segundos (padrão: 180s com janela, 45s em
+         headless, onde ninguém pode resolver o captcha) e, se o download do navegador
          falhar, tenta a requisição do passo 2 mais uma vez (já com os novos cookies).
     """
     logger = get_logger("browser_download")
@@ -100,6 +138,8 @@ def baixar_csv_com_navegador(
     perfil_dir.mkdir(parents=True, exist_ok=True)
     temp = destino.with_suffix(".csv.tmp")
     temp.unlink(missing_ok=True)
+    if timeout_s is None:
+        timeout_s = DEFAULT_TIMEOUT_HEADLESS_S if headless else DEFAULT_TIMEOUT_S
 
     logger.info(
         f"Baixando CSV pelo navegador (perfil '{perfil_dir}', headless={headless}). "
@@ -107,7 +147,7 @@ def baixar_csv_com_navegador(
     )
 
     with sync_playwright() as p:
-        contexto = _abrir_contexto(p, perfil_dir, headless)
+        contexto = _abrir_contexto(p, perfil_dir, headless, janela_escondida=janela_escondida)
         try:
             pagina = contexto.pages[0] if contexto.pages else contexto.new_page()
             if pagina_inicial:
@@ -137,10 +177,17 @@ def baixar_csv_com_navegador(
                         titulo = pagina.title()
                     except Exception:
                         pass
+                    dica = (
+                        " Em modo headless não há como resolver o captcha: rode uma vez sem --headless "
+                        "para renovar os cookies do perfil e depois volte a usar --headless."
+                        if headless
+                        else " Se apareceu o captcha da Radware, resolva-o na janela."
+                    )
                     raise DataExtractionError(
                         f"O navegador não recebeu o CSV em {timeout_s}s"
                         + (f" (página: '{titulo}')" if titulo else "")
-                        + ". Se apareceu o captcha da Radware, rode sem --headless e resolva-o na janela."
+                        + "."
+                        + dica
                     ) from erro_navegacao
         finally:
             try:

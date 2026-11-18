@@ -355,6 +355,7 @@ def obter_csv_caixa(
     headless: bool = False,
     pasta_downloads: Optional[Union[Path, str]] = None,
     timeout_navegador_s: Optional[int] = None,
+    janela_escondida: bool = False,
 ) -> Path:
     """Obtém o CSV da Caixa pelo método escolhido e retorna o caminho salvo.
 
@@ -384,7 +385,7 @@ def obter_csv_caixa(
             if etapa == "requests":
                 return baixar_csv_caixa(destino)
             if etapa == "navegador":
-                kwargs = {"headless": headless}
+                kwargs = {"headless": headless, "janela_escondida": janela_escondida}
                 if perfil_navegador:
                     kwargs["perfil_dir"] = perfil_navegador
                 if timeout_navegador_s:
@@ -422,7 +423,7 @@ def buscar_imoveis_csv(
     """Obtém/carrega o CSV da Caixa e filtra para todas as cidades configuradas.
 
     ``opcoes_download`` é repassado a ``obter_csv_caixa`` (perfil_navegador,
-    headless, pasta_downloads, timeout_navegador_s).
+    headless, janela_escondida, pasta_downloads, timeout_navegador_s).
     """
     destino = Path(caminho_csv) if caminho_csv else DEFAULT_CSV_PATH
     if baixar_se_necessario and caminho_csv is None:
