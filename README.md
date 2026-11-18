@@ -105,6 +105,14 @@ navegador e funciona offline:
   financiamento, busca por bairro/endereço e "só cidades monitoradas";
 - **Tabela** ordenável com link para cada imóvel no site da Caixa e **exportação CSV**
   do resultado filtrado; tema claro/escuro.
+- **Mudanças desde a lista anterior:** quantos imóveis entraram, saíram ou mudaram de
+  preço; filtro "Mudanças" (novos / preço reduzido / preço aumentado), coluna com a
+  variação de preço na tabela e a lista dos que saíram (vendidos ou retirados).
+  O script guarda um resumo de cada lista em `dados_imoveis/historico/` (as 10 mais
+  recentes) e compara com a última lista de data anterior. Na primeira execução, usa o
+  `painel_imoveis.html` existente como ponto de partida.
+
+O painel tem `noindex`, para não aparecer em buscadores como o Google.
 
 ```bash
 python scraper_automatico.py --abrir-painel          # gera e abre no navegador
