@@ -14,6 +14,23 @@ from datetime import datetime
 from .config import LOGS_DIR
 
 
+class _SemDuplicarNoConsole(logging.Filter):
+    """Silencia o console deste logger quando o logger raiz já escreve no console.
+
+    O ``scraper_automatico.py`` configura o logger raiz (``config/logging_config``)
+    e as mensagens dos módulos propagam até ele; sem este filtro, cada linha
+    aparecia duas vezes no terminal. Usado sozinho (sem logger raiz configurado),
+    o módulo continua escrevendo no console normalmente.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        raiz = logging.getLogger()
+        return not any(
+            type(h) is logging.StreamHandler and getattr(h, "stream", None) in (sys.stdout, sys.stderr)
+            for h in raiz.handlers
+        )
+
+
 def setup_logger(
     name: str = "scraper",
     level: int = logging.INFO,
@@ -56,6 +73,7 @@ def setup_logger(
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(level)
         console_handler.setFormatter(formatter)
+        console_handler.addFilter(_SemDuplicarNoConsole())
         logger.addHandler(console_handler)
     
     # Handler para arquivo
